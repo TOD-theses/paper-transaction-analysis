@@ -1,0 +1,130 @@
+\documentclass[paper=a4,fontsize=11pt,oneside,titlepage]{scrartcl}
+% -------------------------------------------------
+\usepackage[hidelinks]{hyperref}
+\usepackage{todonotes}
+\usepackage{hyphenat}
+% -------------------------------------------------
+\subject{{\normalsize Seminar for Master Students in\\
+  Software Engineering \& Internet Computing}\\\vspace{1cm}
+  Master Thesis Proposal Draft}
+
+\title{Automatic detection of contracts vulnerable to displacement TOD attacks.}
+
+\author{\textit{Student:}\\
+Othmar Lechner, 11841833}
+
+\date{\today}
+
+\publishers{\textit{Advisor:}\\
+Ass.Prof.in Dipl.-Ing.in Mag.a rer.soc.oec. Dr.in techn. Monika di Angelo
+\\\vspace{1cm}
+%% \textit{Advisor Signature:}\\
+%%        {\small I have approved this proposal and ensure that the feedback provided during the
+%%          ``Seminar for Master Students in Software Engineering \& Internet Computing''
+%%          will be taken into account.}\\\vspace{3cm}
+\textit{Co-Supervising Assistant:}\\
+Ao.Univ.Prof. Dipl.-Ing. Dr.techn. Gernot Salzer}
+
+\begin{document}
+\thispagestyle{empty}
+\maketitle
+\newpage
+
+% -------------------------------------------------
+\section{Problem Statement and Motivation}
+\label{sec:problem}
+% -------------------------------------------------
+
+Example references~\cite{CousotCousot1977,Hoare1969}...
+
+Only widely used+maintained tools currently:
+- slither
+- mythrill
+
+Slither doesn't include TOD, Mythrill has a high usage barrier (or paid for MythX) and \todo{verify statement about Mythrill TOD} fails to detect TOD with hashes and tokens / too many false positives.
+
+Also, as noted by \todo{cite paper from 2023 here}, most tools don't cover value lost due to Tokens and are unable to use cryptographic \todo{what's the word?}, as for instance keccak256. This leads to many vulnerable contracts being missed.
+
+Contributions of this work:
+\begin{itemize}
+  \item Definition of sinks for EIP interfaces (eg token interfaces), allowing at least limited reasoning about unwanted external calls.
+  \item A new algorithm to detect displacement TOD contracts, that is able to handle hashes, signatures, etc by using taint flow analysis
+  \item An implementation of this algorithm in the Slither framework, which is a user friendly and well maintained framework
+\end{itemize}
+
+\begin{itemize}
+\item What is the problem to be studied? Why is it important?
+\item Ethical considerations (if any)
+\end{itemize}
+
+% -------------------------------------------------
+\section{Aim of the Thesis and Expected Results}
+\label{sec:results}
+% -------------------------------------------------
+
+Define categories of TOD relevant to code analysis detection.
+
+Create an overview of existing code analysis tools for TOD, where one can see which categories of TOD they detect and to what extend.
+
+\begin{itemize}
+\item What are the concrete goals and expected results?
+\item How do these goals/results contribute to the problem of \autoref{sec:problem}?
+\end{itemize}
+
+% -------------------------------------------------
+\section{Methodology}
+\label{sec:methods}
+% -------------------------------------------------
+
+State of the Art research:
+- existing work on categorizing TOD
+- existing work on code analysis tools for TOD
+- existing work on data sets with labelled contracts (TOD-vulnerable, TOD-resistant)
+
+In addition to literature review, this will also include researching tools and data sets which are not yet covered by literature. This is necessary, as the literature often is not up-to-date for such tools.
+
+Based on this research, I will define a set of TOD types, that divide the general TOD to multiple subtypes. These should reflect the different types of solving strategies that code analysis tools can have (TODO: what exactly do I mean here? This sounds like gut feeling - I kinda want to include assumptions / my hypothesis of where the limits of individual approaches are into the type definitions).
+
+Taking existing datasets of vulnerable and non-vulnerable contracts, these new TOD type definitions will be added as labels to the contracts. As there are no tools for this problem yet, this will require a manual investigation of the contracts. When identifying many contracts with similar patterns, small scripts can be written that test for specific instances of these TOD types.
+
+Now we will have a database of contracts, where each contract is labelled on whether they are vulnerable to the TOD types. With this, I will analyze which tools can detect which TOD types. Depending on the availability and usability of the tools, this will cover a practical analysis by testing them against the dataset, or a theoretical analysis of their detection approach.
+
+\begin{itemize}
+\item How will the goals and results of \autoref{sec:results} be addressed and achieved?
+\item What working directions/methods will be used and investigated?
+\item How do you plan to validate/evaluate your results?
+\end{itemize}
+
+% -------------------------------------------------
+\section{State of the Art}
+\label{sec:relatedWork}
+% -------------------------------------------------
+
+\begin{itemize}
+\item What are the existing approaches addressing similar problems? (Include at least 4 references.)
+\item What makes the thesis different? How does it go beyond the state of the art?
+\end{itemize}
+
+% -------------------------------------------------
+\section{Context within the Master Program}
+\label{sec:masterProgram}
+% -------------------------------------------------
+
+The VU Smart Contracts and Cryptocurrencies both discussed the workings of block\hyp{}chains, in particular Ethereum. This thesis takes up one of the vulnerabilities discussed in the Smart Contracts course.
+
+The concept of the vulnerability is similar to the TOCTOU class of vulnerabilities, which has been discussed in several other security lectures. For instance, with Ponzi scheme TOD vulnerabillites, the time of check corresponds to the time the user signs their transaction based on the information from the current state, whereas the time of use corresponds to the execution time in a block.
+
+Furthermore, some detection tools use formal methods, such as Oyente which uses symbolic execution, for the verification. The knowledge from the Formal Methods for Security \& Privacy course helps to understand these approaches.
+
+\begin{itemize}
+\item Where does the thesis fit in the Software Engineering \& Internet Computing
+Master program? Which course materials are relevant?
+\item Optional: Relevance to other Informatics Master programs at TU Wien
+\end{itemize}
+
+% -------------------------------------------------
+\newpage
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}
