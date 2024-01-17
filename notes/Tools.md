@@ -2,6 +2,8 @@ A semi-structured list of tools that may or may not detect TOD contracts.
 
 ### Supported Tools
 
+TODO: NYX (https://github.com/Troublor/Nyx)
+
 ||detects TOD|version|Solidity|bytecode|runtime code|
 |---|---|---|---|---|---|
 |[ConFuzzius](https://github.com/christoftorres/ConFuzzius)|YES|#4315fb7 v0.0.1|:heavy_check_mark:|||
