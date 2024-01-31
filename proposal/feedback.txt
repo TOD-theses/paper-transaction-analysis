@@ -1,0 +1,16 @@
+Reviewer 1:
+
+1.1. The introduction is somewhat limited also the motivation is not really clear. You mention that the main question is why are the tools bad at detecting the frontrunning, but that is not answered later on.
+
+1.2. Are you trying to develop a new detection mechanism or are you trying to evaluate the existing tools? This is an important distinction that needs to be clearly made.
+
+1.3. There needs to be some sort of standardized benchmark on how you intend to evaluate the tools? Are you planning to reuse an existing benchmark or are you planning to develop your own benchmark?
+
+1.4. Also you should talk to your advisors about the scope of your thesis, because we should avoid the scope explosion. For example, how are you planning to select the smart contracts for the evaluation, benchmarking, etc.?
+
+
+Reviewer 2:
+
+2.1. What would help in the introduction for motivation would also be concrete examples and some numbers about the real-world impact these attacks currently have.
+
+2.2. The main part of the goal and methodology seems to focus on creating a labeled dataset? Again, scoping could be an issue and you should try to define clear research questions that you can use to scope out the thesis and better structure the methodology on how you plan to answer them. 
