@@ -27,7 +27,7 @@ Token-ABC
 
 None
 
-Owner -> exact definition is hard
+Owner -> exact definition is hard (can the attack be performed by an arbitrary address? previous interaction necessary?)
 
 # Complexity
 
