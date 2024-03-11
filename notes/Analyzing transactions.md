@@ -20,11 +20,16 @@ I want to:
 - get the [EIP-3155 Traces](https://eips.ethereum.org/EIPS/eip-3155) execution traces (or a similar format)
 - analyze the traces via python/etc.
 
+TODO:
+- what if the execution semantic changed? ie SELFDESTRUCT pre 13.3.2024 and post 13.3.2024 has different semantics. Would I need to use different versions of the EVM? How often does this happen?
+
 ## Getting the initial state
 
 There are many online services that provide archive nodes, which can then be linked locally (using forks in foundry's anvil, geth, etc). There you can also specify a specific block.
 
 For a specific transaction within a block, you'd likely need to execute all transactions after the block start.
+
+I don't necessarily need an archive node, a snapshot at a specific state should be sufficient to replay all transactions following it. Maybe this is more difficult and error-prone though.
 
 ## Analyzing transactions
 

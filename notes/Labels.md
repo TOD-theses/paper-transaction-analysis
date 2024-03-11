@@ -1,5 +1,13 @@
 
-# Attack Types
+## Definitions
+
+TOD-Amount, TOD-Recipient, TOD-Transfer, TOD-Selfdestruct: See Securify (read-write conflict leading to a different input to .call/transfer/selfdestruct)
+
+Internal transactions changed
+
+...
+
+## Attack Types
 
 Withdraw (eg via password) =?= SWC 105
 
@@ -18,16 +26,18 @@ How does the transaction affect / is affected by the environment? (ie why does t
 - Existence of other contract
 - ...
 
-# Currency Type
+## Currency Type
 
 Ether
 Token-ABC
 
-# Preconditions
+## Preconditions
 
 None
 
 Owner -> exact definition is hard (can the attack be performed by an arbitrary address? previous interaction necessary?)
+
+Attacker-address is already known, ie stored somewhere in the contract (semi-good definition as well)
 
 # Complexity
 
