@@ -41,6 +41,7 @@ If the transaction is stored in the network, the `debug_traceTransaction` RPC wi
 
 Trying this with anvil did not succeed (see appendix below). EDIT: This call is not implemented on Infura, maybe check Quicknode. Also, I'd like to do this locally (with my own tx order), so can this be executed by the local geth/anvil/... client?
 https://geth.ethereum.org/docs/developers/evm-tracing/built-in-tracers
+Also check `debug_traceBlockByHash`.
 
 ### Foundry
 
