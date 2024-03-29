@@ -26,7 +26,7 @@ Which part of the State affected the victim transaction?
 ### Preconditions
 Attacker-known: the address from the attacker was returned from a SLOAD or a SLOAD with the attackers address as index returned != 0? Maybe hard to understand without information flow analysis.
 
-This is probably easier to check if the replayer runs $T_A$ from both, the attackers address and from an arbitrary address. If the traces are equal, it doesn't matter who attacks. If the traces are not equal, it probably matters (or maybe then we'd need to update the attack input).
+This is probably easier to check if the replayer runs $T_A$ from both, the attackers address and from an arbitrary address. If the traces are equal, it doesn't matter who attacks. If the traces are not equal, it probably matters (or maybe then we'd need to update the attack input). BUT, this won't work if the attacker used bot contracts, eg to get some WETH for this attack.
 ### Control Flow
 Whether the control flow changed due to the attack or not.
 ### Used opcodes
@@ -35,6 +35,9 @@ A list of used opcodes that could make it hard for detection tools:
 - signing
 - "new" opcodes
 
+## Attack symmetry
+
+Is both $T_A \rightarrow T_V$ and $T_V \rightarrow T_A$ an attack? ie, if it was in the "non-attack" order $T_V \rightarrow T_A$, would this be an attack with the roles swapped?
 ## Other metadata
 
 Net profits and losses (ether, tokens).

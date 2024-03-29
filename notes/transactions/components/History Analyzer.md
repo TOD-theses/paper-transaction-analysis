@@ -20,6 +20,11 @@ Considerations:
     - could miss dependencies on contract existence (eg through selfdestruct)
     - could miss dependencies on something I forgot about (would need to check of what exactly the state consists, thus what can impact the transaction)
 
+Exclusions:
+- both transactions from the same sender (with the tx nonce, it's not possible the order would get changed)
+- contract creation + tx to the contract (no one would make a transaction to a contract before it was created)
+- transaction only sends value, no other statediff (TODO: rethink this)
+
 ## Definition remarks
 
 Definition: Read something that was *recently* modified by another transaction

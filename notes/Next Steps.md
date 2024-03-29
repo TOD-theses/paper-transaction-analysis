@@ -1,14 +1,4 @@
 
-## Clarify
-
-Which data do I want to extract?
-
-Are traces sufficient for all the labels? Would there be a better suited format?
-## Technical
-
-- run revm-replayer on the attacks from the Zhang et al. benchmark
-- implement basics of transaction analyzer
-
 ## Research
 
 Which work exists that analyzes transactions?
