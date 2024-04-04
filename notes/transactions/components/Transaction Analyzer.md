@@ -13,6 +13,15 @@ Attacker Profit / Victim Profit
 
 Maybe it's better to split this into multiple labels and reason about the definitions later on.
 
+### Vulnerable contracts
+Which contracts from this trace are vulnerable to TOD?
+
+I consider a contract vulnerable, if the same input resulted in a different execution:
+- in the trace they are called with the same inputs
+- their execution differs based on the transaction order
+
+TODO: should this be one level above, such that every other label is attached to a specific contract instead of the whole trace? eg "contract X" is vulnerable to TOD-Amount instead of "this trace" is vulnerable to TOD-Amount.
+
 ### Impact
 Loss of currency: ether/token
 Unknown
