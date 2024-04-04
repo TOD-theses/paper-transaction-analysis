@@ -9,7 +9,7 @@ I want to analyze transactions to:
 
 ## Components
 
-![Diagram](http://www.plantuml.com/plantuml/png/RP9FR_8m3CRl-HGMxmKE_GQl9X1Ysc5_49guiAaogGNHGb8bxaRtwHUI9QFh3bNInpy_iPtCFQFZxgH5Wunxz0IJXPD7zKxmQ1jwCTELKmThPXD03vX2jGaXiRjJdgth0Gtg_fFSwmKv9h7EejWzEpGU9Ijhm56hiISNV3UhxSCifcGH_lMajVqOfWpS-LoC2trL-keSJbVc044A0ljmpXCV0znYIywdBkYRgZFrjnMUMasmxRGXXtiTPh6qXXrAzj56vhzXlQN1MzkPnlMfnwGA8QOpsAoNbsMojao65Mf0PfHloPP_l4fX4Lz42BmaWqxP2AV4EckH2yL8AbwIXYxtk2UTeZfkXRY-LQXYUU63_rLrCxxEtm84Qb2p4EFvZfb1brLv0Y9lSega09T9NzHHppbX71WxfHMgwuSaoZx1UIvpCartqby0)
+![Diagram](http://www.plantuml.com/plantuml/png/RPBFZjCm4CRlVefHkMmbyWO8xR8KSU3FQa5xAIYQEaDhuOuZUm8DJuzZRvoQSAYSVlFpPy_dkGs2NeQpLHqA7Z0GREwyFfbV19zSHz_uPkVDqV5s0nW0SwdbM5BxzoQ8yoCWent_aFy-8QSijhEezbyzSa0jnZ5uwYsEvAFlu-xfutRQKaHuCPArxdUzfNANIp4kz7BptSK4CNo4IGea8HxpMKwHxR4d7t8Jz4orC_LV9pptbk1fi4mU3pOcSUzOF6e9oKNF_-hRblRUkO4xF-OEiwhsRqaeS-AS1Jym9_ZB6Rsy6OuXurEnpKMbrCqM7X_kfsNpu8HO35f04TG_yrLaER_qal2x147GnEYDIt3UsCvQuc83cegNfjhb0nx8XfTNMK0TXKr0TdBE1lXXk8i1FpjEKki6wGTHwdg2e4cDnH-yQfhNwz7vLu18LTqgjNxCDLFbqvHnK_bZiTKKuVAkaxfAQzwmBgoTyWhDzT16zLArCuUdyWfDzVZBTuRhB6-9k-5i_m80)
 
 **[History Analyzer](./notes/transactions/components/History%20Analyzer.md)** (eg python), that:
 - uses an archive node to filter out *potential* frontrunning attacks
@@ -29,3 +29,7 @@ I want to analyze transactions to:
 - checks if the transaction matches a frontrunning definition
 - extracts attack metadata
 - extracts labels
+
+**[Detection Tool Runner](./notes/transactions/components/Detection%20Tool%20Runner.md)** (eg SmartBugs), that:
+- takes smart contracts (or groups of them)
+- checks which detection tools report TOD vulnerabilities for which contracts
