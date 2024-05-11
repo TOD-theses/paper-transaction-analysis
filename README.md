@@ -9,14 +9,14 @@ I want to analyze transactions to:
 
 ## Components
 
-![Diagram](http://www.plantuml.com/plantuml/png/RPBFZjCm4CRlVefHkMmbyWO8xR8KSU3FQa5xAIYQEaDhuOuZUm8DJuzZRvoQSAYSVlFpPy_dkGs2NeQpLHqA7Z0GREwyFfbV19zSHz_uPkVDqV5s0nW0SwdbM5BxzoQ8yoCWent_aFy-8QSijhEezbyzSa0jnZ5uwYsEvAFlu-xfutRQKaHuCPArxdUzfNANIp4kz7BptSK4CNo4IGea8HxpMKwHxR4d7t8Jz4orC_LV9pptbk1fi4mU3pOcSUzOF6e9oKNF_-hRblRUkO4xF-OEiwhsRqaeS-AS1Jym9_ZB6Rsy6OuXurEnpKMbrCqM7X_kfsNpu8HO35f04TG_yrLaER_qal2x147GnEYDIt3UsCvQuc83cegNfjhb0nx8XfTNMK0TXKr0TdBE1lXXk8i1FpjEKki6wGTHwdg2e4cDnH-yQfhNwz7vLu18LTqgjNxCDLFbqvHnK_bZiTKKuVAkaxfAQzwmBgoTyWhDzT16zLArCuUdyWfDzVZBTuRhB6-9k-5i_m80)
+![Diagram](http://www.plantuml.com/plantuml/png/PP9lRzCm4CRV-rESofjLejzWcZPAqP20JQNQcuAYQt9h8bmxEb-WGVtmNEmcIqYbAlRp_7n_phuFWYpDoHfBHt85YA-1gsCf1lHtMNlh-GAxjYQu9EdsdUty8rDxTu5lNY36e68Ea5FYgH7mho0bmS6Vtw2MhFL_5FZie6QlU0ZgQX6f56CA53nW85WyS5vMlqcp5VJ3tMmtkyVb0Z009YDpQi0ehza_La4yju0ERVkN-6U7bqdCUj7iTumkO2wLTy1KMso9hnd0CsmtBr-NyMXlJhECZqyooNb80jTMH_ripbf8vOwWaWeIDEMJbChMM1E7r1nTgQod9hd7qV1KMuANnZfYF5YTqTexOIqin4XvlvjMFBJxoJUku3PrcbIp_qX2YHFlBN3ZN8I_dv3bGtCC2U_CB9d6c9ibR9_NtMVnx8MSL6W1HJ3_bKgHj_mXOW_HX92JGwvyXDA1hDSYfuNdDCJGvJ3Npls21xBX_MW6C1s1ZK2Af1K7UArSeSDDhdHIvXkf6p5cygfMiI7zm-rgTJT_GlyBeDIqIpE_o3apsgazF3VJB_eZEIayt6UdpgRL7vWRyqZfg-pemHepR1BT3y-ahzBZIn_M2PxEyfvSqPpiFm00)
 
-**[History Analyzer](./notes/transactions/components/History%20Analyzer.md)** (eg python), that:
+**[History Analyzer](./notes/transactions/components/History%20Analyzer.md)** (eg python+SQL, using RPC), that:
 - uses an archive node to filter out *potential* frontrunning attacks
 
-**[Transaction Replayer](./notes/transactions/components/Transaction%20Replayer.md)** (eg REVM), that:
+**[Transaction Replayer](./notes/transactions/components/Transaction%20Replayer.md)** (REVM or wrapper for RPC), that:
 - runs transactions based on a specific block state
-- outputs transaction traces (or similar)
+- outputs transaction traces
 
 **[Transaction Player](./notes/transactions/components/Transaction%20Player.md)** (eg customized Foundry), that:
 - deploys minimal contracts
@@ -24,7 +24,7 @@ I want to analyze transactions to:
 - runs 2+ transactions in different orders
 - outputs transaction traces (or similar)
 
-**[Transaction Analyzer](./notes/transactions/components/History%20Analyzer.md)** (eg python), that:
+**[Transaction Analyzer](./notes/transactions/components/History%20Analyzer.md)** (python), that:
 - takes transaction traces (or similar)
 - checks if the transaction matches a frontrunning definition
 - extracts attack metadata

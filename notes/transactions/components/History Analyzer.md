@@ -25,13 +25,49 @@ Exclusions:
 - contract creation + tx to the contract (no one would make a transaction to a contract before it was created)
 - transaction only sends value, no other statediff (TODO: rethink this)
 
-## Definition remarks
+Note: Maybe the archive node already stores all these state diffs in a database, for easier lookup? If yes, we could simply use that :)
+And if not, maybe we can modify the node to store this data in a database on the first sync?
 
-Definition: Read something that was *recently* modified by another transaction
+#### Accessed state overlaps
 
-Remark for the definition: Without "recently" it would detect nearly everything. If a program reads a non-constant non-zero value, a previous transaction must have set this value.
+Consider it a potential attack, if two transactions accessed the same state (storage, balance, ...). This would also include read-reads (which are no attacks), however it's probably easier to implement. Research could be done, how much difference there is to other pruning approaches.
 
-Remark for the remark: This remark probably extends for all definitions (eg an Ether flow depends on the fact that the sender already got the ether from a previous transaction; a token transfer depends on the fact that the token was created previously).
+For this, we could use prestate tracers, or maybe also `accessList`.
 
-"Recently" is a heuristic to identify the case that the attacker knew of the victim transaction before publishing their own transaction. If the attackers transaction happened 10 years earlier it's not possible that they knew of the victims transaction. If it happened 10 seconds earlier, it's certainly possible.
-Sometimes it's also inherent to the data. For instance, if a contract was created and somebody makes a transaction to the contract address afterwards: The contract address is not known previously, so it can't be that the tx was first in the mem-pool, the attacker saw it and then quickly created the contract for this transaction first.
+Maybe check how much `accessList` is used and how often it truly reflects the accessed state: https://eips.ethereum.org/EIPS/eip-2930
+
+## Archive Nodes
+
+### Erigon
+
+Likely benefits: fast to sync, widely used
+
+Seems to store access sets on a block level: https://github.com/ledgerwatch/erigon/blob/devel/docs/programmers_guide/db_walkthrough.MD
+
+
+### RETH
+
+Likely benefits: fast to sync, fast to replay
+
+The database seems NOT to store access sets on a transaction level, only on a block level. Thus, I think it would need to re-execute each transaction to get this info. See `.../tables/mod.rs`.
+
+The debug tracing is implemented at `crates/rpc/rpc/src/debug.rs` and uses `revm` to replay the transactions.
+
+Prestate is probably enough. It includes everything that was touched (even if it was not modified in the normal mode).
+
+### Reth via Merkle
+https://freerpc.merkle.io/
+
+Sync starting from snapshot: https://blog.merkle.io/blog/reth-snapshots-faster-syncing-ethereum
+https://blog.merkle.io/blog/run-a-reth-node
+
+
+3s for 1 block with 250 tx.
+Current number of blocks: 19719145
+3s * 19719145 = 684 days
+
+
+Compute unit: https://docs.alchemy.com/reference/debug-traceblockbyhash
+Anvil uses an average cost of 17 to estimate the real costs and accepts a parameter to limit the costs. With this we could limit it to n requests per second (instead of guessing a comput unit cost for tracing)
+
+https://docs.merkle.io/simulations/guide
