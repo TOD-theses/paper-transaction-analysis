@@ -2,12 +2,26 @@
 
 
 # Latex build files
-proposal.aux
-proposal.bbl
-proposal.blg
-proposal.fdb_latexmk
-proposal.fls
-proposal.log
-proposal.out
-proposal.pdf
-proposal.synctex.gz
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.pdf
+*.synctex.gz
+*.acn
+*.glo
+*.idx
+*.ilg
+*.ind
+*.ist
+*.loa
+*.lof
+*.lot
+*.dtx
+*.gls
+*.hd
+*.ins
+*.toc
