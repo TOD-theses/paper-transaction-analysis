@@ -38,9 +38,24 @@ Maybe check how much `accessList` is used and how often it truly reflects the ac
 
 ## Archive Nodes
 
+https://ethernodes.org/
+However, Geth, Nethermind and Besu require much more space than Erigon and Reth (~2TB vs 12+TB).
+### Hardware
+
+https://paradigmxyz.github.io/reth/installation/installation.html
+https://gist.github.com/yorickdowne/f3a3e79a573bf35767cd002cc977b038
+
+|           |                                       |
+| --------- | ------------------------------------- |
+| Disk      | At least 2.2TB (TLC NVMe recommended) |
+| Memory    | 8GB+                                  |
+| CPU       | Higher clock speed over core count    |
+| Bandwidth | Stable 24Mbps+                        |
+
 ### Erigon
 
 Likely benefits: fast to sync, widely used
+Recommend auf [ethereum.org](https://ethereum.org/en/developers/docs/nodes-and-clients/archive-nodes/#recommended-practices).
 
 Seems to store access sets on a block level: https://github.com/ledgerwatch/erigon/blob/devel/docs/programmers_guide/db_walkthrough.MD
 
@@ -48,6 +63,8 @@ Seems to store access sets on a block level: https://github.com/ledgerwatch/erig
 ### RETH
 
 Likely benefits: fast to sync, fast to replay
+
+Same developers as foundry, also backed by REVM.
 
 The database seems NOT to store access sets on a transaction level, only on a block level. Thus, I think it would need to re-execute each transaction to get this info. See `.../tables/mod.rs`.
 
@@ -60,14 +77,3 @@ https://freerpc.merkle.io/
 
 Sync starting from snapshot: https://blog.merkle.io/blog/reth-snapshots-faster-syncing-ethereum
 https://blog.merkle.io/blog/run-a-reth-node
-
-
-3s for 1 block with 250 tx.
-Current number of blocks: 19719145
-3s * 19719145 = 684 days
-
-
-Compute unit: https://docs.alchemy.com/reference/debug-traceblockbyhash
-Anvil uses an average cost of 17 to estimate the real costs and accepts a parameter to limit the costs. With this we could limit it to n requests per second (instead of guessing a comput unit cost for tracing)
-
-https://docs.merkle.io/simulations/guide

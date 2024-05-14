@@ -11,14 +11,6 @@ For the Zhang et al. benchmark, one nearly complete run until the Infura rate li
 | output        | 16GB   | 18.5GB   | 106MB      | 6 TB              |
 | output.tar.gz | 260MB  | 300MB    | 2MB        | 100GB             |
 
-## Traces Analyzer (Outdated)
-
-|         | Actual | For 100GB traces.tar.gz |
-| ------- | ------ | ----------------------- |
-| Time    | 2m     | 13h                     |
-| Attacks | 154    | 60.000                  |
-| output  | 64MB   | 24GB                    |
-
 ## Traces Analyzer
 
 |         | Actual | For 100GB traces.tar.gz |
