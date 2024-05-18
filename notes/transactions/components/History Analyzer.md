@@ -77,3 +77,30 @@ https://freerpc.merkle.io/
 
 Sync starting from snapshot: https://blog.merkle.io/blog/reth-snapshots-faster-syncing-ethereum
 https://blog.merkle.io/blog/run-a-reth-node
+
+
+## SQL
+https://www.db-fiddle.com/f/7rG186wQSDtj8XRhKwcXYU/0
+
+CREATE TABLE transactions (
+  id  SERIAL PRIMARY KEY,
+  address char(8),
+  storage_key char(4),
+  block_number int
+);
+
+INSERT INTO transactions (address, storage_key, block_number)
+VALUES
+	('abcdefgh', 'aaaa', 1),
+    ('bbbbbbbb', 'aaaa', 1),
+    ('abcdefgh', 'aaaa', 2),
+    ('abcdefgh', 'aaaa', 3),
+    ('abcdefgh', 'aaaa', 30);
+
+SELECT *
+FROM transactions a
+INNER JOIN transactions b
+ON a.address = b.address
+	AND a.storage_key = b.storage_key
+    AND a.id < b.id
+    AND b.block_number - a.block_number <= 3
