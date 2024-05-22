@@ -24,3 +24,7 @@ Creating traces with complete stack and memory for each step, using REVM with RP
 
 TOD-O
 
+prestateTracer: ~1-2s per request, basically no cost, dunno the storage.
+stateDiff: ~1-3s per request !!! $ 0.2 for 130 requests !!! dunno the storage.
+
+Also: cache is not supported for trace_replayBlockTransactoins -> need to add it.
