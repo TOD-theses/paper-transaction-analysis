@@ -131,12 +131,80 @@
 \chapter{Introduction}
 \todo{Enter your text here.}
 
-\chapter{Additional Chapter}
-\todo{Enter your text here.}
+\section{Ethereum}
+
+\section{Frontrunning}
+
+\section{Related work}
+
+\subsection{Frontrunning attacks}
+
+\subsection{Attack analysis}
+
+\subsection{Ethereum attack mining from the blockchain history}
 
 Example reference: \cite{wu_time-travel_2022}.
 
-% Remove following line for the final thesis.
+\chapter{Frontrunning definitions}
+
+\chapter{TOD attack mining}
+
+\section{TOD candidate finding}
+
+\subsection{Prestates}
+
+Inclusion criteria.
+
+\section{TOD candidate filtering}
+
+\subsection{Attack prerequesites}
+
+Exclusion criteria:
+
+\begin{enumerate}
+    \item $Tx_A$ is from the same sender as $Tx_B$.
+    \item $Tx_B$ is only an Ether transfer.
+\end{enumerate}
+
+\subsection{Deduplication}
+
+We want a diverse set of attacks for the benchmark, so we filter out similar attacks to the ones we already analyzed. For instance, it does not make sense to analyze 5000 attacks for the USDT Stablecoin, as these will mostly collide.
+
+Ideas, potentially a mixture of those:
+
+\begin{enumerate}
+    \item only trace some attacks per contract
+    \item only trace some attacks per function
+    \item only trace some attacks per group of vulnerable contracts (as defined by analysis)
+    \item only trace some attacks per contract/function skeletons
+    \item similar to \cite{}, analyze at how many attacks per contract/function the number of found attacks saturate (based on the analysis result)
+\end{enumerate}
+
+\chapter{Trace analysis}
+
+\section{Trace parsing}
+
+\section{Attack categorization}
+
+\section{Vulnerability localization}
+
+\section{Attack labeling}
+
+\chapter{TOD Attack results}
+
+Findings of the TOD attack mining and analysis.
+
+\chapter{Tool benchmarking}
+
+\section{Systematic Literature Review}
+
+\section{Setup}
+
+\section{Result}
+
+
+
+
 % \input{intro.tex} % A short introduction to LaTeX.
 
 \backmatter
