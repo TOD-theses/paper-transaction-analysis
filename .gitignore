@@ -25,3 +25,5 @@
 *.hd
 *.ins
 *.toc
+
+!paper/graphics/Logo-schwarz.pdf
