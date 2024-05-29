@@ -24,6 +24,10 @@
 \usepackage{hyperref}  % Enables hyperlinking in the electronic document version. This package has to be included second to last.
 \usepackage[acronym,toc]{glossaries} % Enables the generation of glossaries and lists of acronyms. This package has to be included last.
 
+% custom packages
+\usepackage{threeparttable}
+
+
 % Define convenience functions to use the author name and the thesis title in the PDF document properties.
 \newcommand{\authorname}{Othmar Lechner} % The author name without titles.
 \newcommand{\thesistitle}{T-RACE: Tracing race condition attacks between Ethereum transactions.} % The title of the thesis. The English version should be used, if it exists.
@@ -147,7 +151,141 @@ Example reference: \cite{wu_time-travel_2022}.
 
 \chapter{Frontrunning definitions}
 
+\section{TOD sources}
+
+For $T_A \rightarrow T_B$:
+
+\begin{enumerate}
+    \item TOD write point: point, where $T_A$ modifies some state, that is read by $T_B$
+    \item TOD read point: point, where $T_B$ reads some state, that was modified by $T_A$
+    \item TOD hidden write point: point, where $T_A$ modifies some state, that is overwritten by $T_B$
+    \item TOD overwrite point: point, where $T_B$ overwrites some state, that was written by $T_A$
+\end{enumerate}
+
+The pair of (TOD write point, TOD read point) presents a write-read conflict. The pair of (TOD hidden write point, TOD overwrite point) presents a write-write conflict.
+
+If we have a write-read conflict and a write-write conflict, $T_B$ reads some state and then overwrites it. Thus, $T_B$ knows of the modified state before overwriting.
+
+One instance would be a simple counter, where both $T_A$ and $T_B$ increment the same counter in the state. Here, we would have a write-read conflict, as $T_B$ reads the counter incremented by $T_A$. And further, we would have a write-write conflict, as $T_B$ updates the same counter as $T_A$.
+
+ERC-20 approval attack would consist of the hidden write point (where approval is set to 0) and an overwrite point (where approval is set to some higher value).
+
+ERC-20 approval migitation (with require for the prev value) would consist of a write point (where approval is set to 0) and a read point (where the approval is used for the require statement).
+
+Uniswap token swap would consist of both a write-read conflict and a write-write conflict. The write-read conflict exists, as $T_A$ modifies the reserves state and $T_B$ reads the current reserves to calculate a price. The write-write conflict exists, as $T_A$ modifies the reserves state and $T_B$ modifies it as well. Contrary to ERC-20 approval, the overwritten value depends on the previous value (which we could show in the data flow graph).
+
+\subsection{State reading instructions}
+
+The EVM uses the nonce to check if an account already exists. For CALL, CALLCODE and SELFDESTRUCT, this is used to calculate the gas costs. For CREATE and CREATE2, this is used to prevent creating an account at an already active address.
+
+See table \ref{tab:state_reading_instructions}.
+
+\begin{table}[h]
+    \begin{center}
+        \begin{tabular}{ | l | c  | c | c | c | }
+            \hline
+            Instruction     & Storage   & Balance       & Code          & Nonce \\ \hline
+            SLOAD &         \checkmark  &               &               & \\  \hline
+            BALANCE &                   & \checkmark    &               & \\ \hline
+            SELFBALANCE &               & \checkmark    &               & \\ \hline
+            CODESIZE &                  &               & \checkmark    & \\ \hline
+            CODECOPY &                  &               & \checkmark    & \\ \hline
+            EXTCODECOPY &               &               & \checkmark    & \\ \hline
+            EXTCODESIZE &               &               & \checkmark    & \\ \hline
+            EXTCODEHASH &               &               & \checkmark    & \\ \hline
+            CALL &                      & \checkmark    & \checkmark    & \checkmark \\ \hline
+            CALLCODE &                  & \checkmark    & \checkmark    & \checkmark \\ \hline
+            STATICCALL &                &               & \checkmark    & \\ \hline
+            DELEGATECALL &              &               & \checkmark    & \\ \hline
+            CREATE &                    & \checkmark    & \checkmark    & \checkmark \\ \hline
+            CREATE2 &                   & \checkmark    & \checkmark    & \checkmark \\ \hline
+            SELFDESTRUCT &              & \checkmark    & \checkmark    & \checkmark \\ \hline
+        \end{tabular}
+        \caption{Instructions that access state. A checkmark indicates, that the execution of this instruction can depend on this state type.}
+        \label{tab:state_reading_instructions}
+    \end{center}
+\end{table}
+
+\subsection{State writing instructions}
+
+See table \ref{tab:state_writing_instructions}.
+
+\begin{table}[h]
+    \begin{center}
+        \begin{tabular}{ | l | c  | c | c | c | }
+            \hline
+            Instruction     & Storage   & Balance       & Code          & Nonce \\ \hline
+            SSTORE &        \checkmark  &               &               & \\ \hline
+            CALL &                      & \checkmark    &               & \\ \hline
+            CALLCODE &                  & \checkmark    &               & \\ \hline
+            STATICCALL &                &               &               & \\ \hline
+            DELEGATECALL &              &               &               & \\ \hline
+            CREATE &                    & \checkmark    & \checkmark    & \checkmark \\ \hline
+            CREATE2 &                   & \checkmark    & \checkmark    & \checkmark \\ \hline
+            SELFDESTRUCT &  \checkmark  & \checkmark    & \checkmark    & \checkmark \\ \hline
+        \end{tabular}
+        \caption{Instructions that modify state. A checkmark indicates, that the execution of this instruction can modify this state type.}
+        \label{tab:state_writing_instructions}
+    \end{center}
+\end{table}
+
+Nonce is also incremented by EOA calls.
+
+\section{TOD sinks}
+
+\section{TOD sanitizers}
+
 \chapter{TOD attack mining}
+
+\section{Related approaches}
+
+\subsection{Combatting paper - Erebus-redgiant}
+
+How do they replay potential attack/victim transactions?
+
+Their framework allows to fork at a specific block and tx\_index.
+
+PrepareStateAndContext - replays up to tx index.
+
+
+They skip potential victim transactions if:
+
+\begin{enumerate}
+    \item error victim transactions (\todo{Are these failed transactions in Ethereum, or error somewhere in their framework? If it's the first, why???})
+    \item "filtered" transactions \todo{What are these?}
+    \item unverified contracts in victim transactions
+    \item victim tx is contract creation (why???). But a good label :)
+    \item victim tx is ether transfer
+    \item no overlap with attack tx (compare sets of contracts/accounts)
+    \item no dependency (storage and balance dependencies, but seem to ignore dependencies within reverted calls)
+\end{enumerate}
+
+Replaying in the attack free scenario:
+
+\begin{enumerate}
+    \item take attack tx state (I guess prestate)
+    \item take victim context (I guess block environment, timestamp, ...)
+    \item apply "prerequesites" - all previous transactions from the same sender within (attack, victim-1)?
+    \item apply + trace victim tx
+    \item apply + trace attack tx
+\end{enumerate}
+
+For prerequesites, refer to \href{https://github.com/Troublor/erebus-redgiant/blob/4544163f0c6a369b35c3237851f482d240fa7bbd/dataset/tx_history_test.go#L42-L53}.
+
+Problems with this approach:
+
+\begin{enumerate}
+    \item prerequesites is an arbitrary choice
+    \subitem what if prerequesites have collisions with the attack?
+    \subitem what if prerequesites depend on other transactions that were not replayed?
+    \subitem what if victim tx depends on other transactions that were not replayed?
+    \item all transactions share the same context
+    \subitem attack tx is moved to different context
+    \subitem prerequesites are potentially moved to different context
+    \subitem (victim tx stays in same context \checkmark)
+    \item replay is done with a different environment
+\end{enumerate}
+
 
 \section{TOD candidate finding}
 
@@ -182,7 +320,131 @@ Ideas, potentially a mixture of those:
 
 \chapter{Trace analysis}
 
+\section{Trace replaying}
+
+\subsection{RPC methods}
+
+
+\todo{\href{https://github.com/paradigmxyz/reth/issues/8202}{Prestate tracer currently does not include prestate for reverted call contexts}}
+\todo{Use quicknode RPC to compare stateDiff/prestate traces from our Reth with their Erigon instance.}
+
+\subsubsection{trace\_call}
+
+
+Takes:
+\begin{enumerate}
+    \item tx info
+    \item block number/hash
+    \item multiple trace types (Trace, VmTrace, StateDiff)
+    \item state overrides (storage, code, ...) - Use stateDiff!
+    \item block overrides (number, hash, timestamp, ...)
+\end{enumerate}
+
+No replaying of previous transactions in the same block, thus we would need to use the state overrides for this effect (calculate state overrides offline, based on stateDiffs from all transactions).
+
+\subsubsection{debug\_traceCall}
+
+Takes:
+\begin{enumerate}
+    \item tx info
+    \item block number/hash
+    \item multiple trace types via mux (4byte, call tracer, prestate/diffstate, JS)
+    \item state overrides (storage, code, ...) - Use stateDiff!
+    \item block overrides
+\end{enumerate}
+
+No replaying of previous transactions in the same block, thus we would need to use the state overrides for this effect (calculate state overrides offline, based on stateDiffs from all transactions).
+
+No opcode tracer in reth?
+
+\subsection{Algorithm}
+
+Lets say, we have a transaction $T_A$ and a $T_B$, where $T_A$ occurred in block $Block_A$ and $T_B$ occurred in $Block_B$ (which may be equal to $Block_A$). Further, $T_A$ occurred before $T_B$, denoted as $T_A \rightarrow T_B$.
+
+We want to replay following scenarios:
+
+\begin{enumerate}
+    \item actual: $T_A \rightarrow T_B$
+    \item reverse: $T_B \rightarrow T_A$
+\end{enumerate}
+
+\subsubsection{Actual: $T_A \rightarrow T_B$}
+In the actual scenario, we replay what actually happened on the blockchain. The observed behaviour should be identical to the one recorded on the blockchain.
+
+To replay $T_A$, we take the environment from $Block_A$ and the state $S_{base}$ before any transaction was executed in $Block_A$. Then, we go through all transactions that happened in $Block_A$ before $T_A$ and add their state changes to $S_{base}$. We end up with $S = S_{base} + \sum_{i=0}^{i=index(T_A)}SD_{T_i}$.
+
+We then execute $T_A$ in the environment from $Block_A$ and with the state $S$ and record its trace.
+
+The replaying of $T_B$ is analogous, by using the environment from $Block_B$ and a state that is built based on $Block_B$ and all transactions prior to $T_B$.
+
+\subsubsection{Reverse: $T_B \rightarrow T_A$}
+
+In the reverse scenario, we want to understand, what would have happend if they were executed the other way around. We model the executions state and environment identical to the actual scenario, except for the state impacts by $T_B$ and $T_A$. If we would have differences in the state or environment model, they could influence the transaction and hinder the focused analysis of the TOD.
+
+To simulate $T_B$ before $T_A$, we execute $T_B$ as in the actual scenario. However, as a state we use $S\prime = S - SD_{T_A}$, ie we remove the changes by $T_A$ from the state.
+
+To simulate $T_A$ after $T_B$, we execute $T_A$ as in the actual scenario. However, as a state we use $S\prime = S + SD_{T_B}$\todo{We should add the result from executing $T_B$ before $T_A$, not the actual result (from executing $T_B$ after $T_A$)}, ie we add the changes by $T_B$ on top of the state.
+
+In both cases, the only difference for the execution, is the modification with the other transactions state. Thus, only this state modification can impact a change of the execution, which is exactly what we want to simulate the TOD.
+
+Compared to other methods, this state overriding method does not struggle with changed environments if we move transactions between blocks and changed states if we move transactions to other positions within blocks.
+
+However, it could be "unrealistic", if there is some transaction $T_A \rightarrow T_C \rightarrow T_B$ where $T_C$ also depends on state modifications done by $T_A$. In such a scenario, moving $T_A$ after $T_B$ would in reality also impact $T_C$ which directly or indirectly could also impact $T_A$ and $T_B$. We can prevent this, if we only analyze pairs of transactions where there is no such intermediate transaction. For instance, in this case we could analyze $T_A \rightarrow T_C$ and $T_C \rightarrow T_B$ in isolation.
+
+\begin{verbatim}
+contract IntermediateDependencyExample {
+    function setX(x) {
+        self.x = x;
+    }
+    function setXIfGreater(x, threshold) {
+        if (self.x > threshold) {
+            self.x = x
+        }
+    }
+    function readX() {
+        return self.x
+    }
+}
+\end{verbatim}
+
+\begin{verbatim}
+Scenario 1:
+
+// this could also only be partial
+// eg if A sets X and Y, and C only sets Y
+// x = 0
+Tx A: setX(1) // x = 1
+Tx C: setX(2) // x = 2
+Tx B: readX() // -> 2
+
+Scenario 2:
+// x = 0
+Tx A: setX(20) // x = 20
+Tx C: setXIfGreater(30, 10) // x = 30
+Tx B: readX()  // -> 30
+\end{verbatim}
+
+In scenario 2, if we would execute $T_A$ after $T_B$, the $setXIfGreater$ call by $T_C$ would also behave differently in reality. $T_B$ would return $0$, however this is the result of $T_A$ and $T_C$ acting together. Thus, we canont analyze the pair $(T_A, T_B)$ in isolation, as it depends on $T_C$. However, we could analyze $(T_A, T_C)$ and $(T_C, T_B)$ separately.
+
 \section{Trace parsing}
+
+Features:
+
+\begin{enumerate}
+    \item parses executed instructions with inputs and outputs
+    \item handles internal transactions, including normal and exceptional halts
+    \item tracks data origin for each byte of data, across calls and storages
+    \item uses reference for DUPn instructions (so verification on one duplicate also verifies the other duplicate)
+    \item outputs data flow graph, eg for source-sanitizers-sink analysis (and sanitizers could occur after sinks in Ethereum, because of reverts)
+\end{enumerate}
+
+Using traces instead of a full-fledged EVM allows:
+
+\begin{enumerate}
+    \item easier extension, as for instructions we only need to model their data flow
+    \item interoperability with all nodes and other tools that produce traces
+    \item automatic verification of the modelled data flows against the actual stack and memory
+\end{enumerate}
 
 \section{Attack categorization}
 
