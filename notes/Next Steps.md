@@ -1,8 +1,14 @@
+### Tasks
+Done so far:
+- POC attack mining via RPC
+- POC trace analysis (without exact TOD definitions and labels)
+- trace generation locally
 
-## Research
-
-Which work exists that analyzes transactions?
-- Zhang et al.
-- other frontrunning attack miners
-- analysis of happened exploits vs detected vulnerabilities from tools
-- MEV analysis (are there papers?)
+TODO:
+- exact definitions of TOD types and labels
+- implement trace analysis for TOD types and labels
+- refine attack mining
+- implement orchestrator: connect attack mining and trace analysis
+- implement MRE based on TOD-source -> TOD-sink
+- implement deduplication and/or grouping of attacks
+- benchmark TOD detection tools

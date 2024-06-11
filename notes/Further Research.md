@@ -27,6 +27,18 @@ How many instructions could we remove from the end, until it doesn't fulfill the
 
 Is the influence trace a minimal reproducible example?
 
+### Automatic migitation
+
+We could automatically add a `require(readPointState == prestateWithoutAttacker)` statement to the vulnerable state-reading contract.
+
+For that we would:
+1. Identify contract $C_V$ that contains the TOD source
+2. At the beginning of the function call in $C_V$, patch the bytecode to load the state, compare it to the constant and revert if false
+3. For all calls leading before $C_V$, increase the sent gas by the necessary amount for the patched bytecode
+4. Trace the transaction, with modified bytecodes and increased gas
+
+Note, that this does not pass the expected state as a parameter, but instead uses a constant. This is for simplicity and may affect the reasoning of the detection tools. Passing it as a parameter would be more realistic.
+
 ## TOD Trace Visualization
 
 Visualize / Display clearly, how the TOD occurred.
