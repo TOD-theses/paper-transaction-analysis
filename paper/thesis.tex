@@ -141,15 +141,42 @@
 
 \section{Related work}
 
-\subsection{Frontrunning attacks}
+Interesting things:
+- name
+- source is available?
+- does it use RPC / instrumentation / native tracing?
+- does it detect some kind of frontrunning
 
-\subsection{Attack analysis}
+See table \ref{tab:blockchain_history_analyzers}.
 
-\subsection{Ethereum attack mining from the blockchain history}
 
-Example reference: \cite{wu_time-travel_2022}.
+\begin{table}[h]
+    \begin{center}
+        \begin{tabular}{ | l | c  | c | c | c | }
+            \hline
+            Tool/Authors & Scope \\ \hline
+            EthScope \cite{wu_time-travel_2022} & Generalized \\ \hline
+            TokenScope \cite{chen_tokenscope_2019} & ERC-20 tokens \\ \hline
+            TXSPECTOR \cite{zhang_txspector_2020} & Generalized \\ \hline
+            Horus \cite{ferreira_torres_eye_2021} & Generalized \\ \hline
+            SODA \cite{chen_soda_2020} &  Generalized \\ \hline
+            DEFIER \cite{su_evil_2021} & Generalized \\ \hline
+            Zhou et al. \cite{zhou_ever-evolving_2020} & Generalized \\ \hline
+            Perez et al. \cite{perez_smart_2021} & Generalized \\ \hline
+            Wang et al. \cite{wang_impact_2022} & Sandwich attacks \\ \hline
+            Erebus-Redgiant \cite{zhang_combatting_2023} & Frontrunning \\ \hline
+            Frontrunner Jones \cite{torres_frontrunner_2021} & Frontrunning \\ \hline
+        \end{tabular}
+        \caption{Blockchain history analysis references. Generalized means, that the data collection and analysis framework is not tailored to specific vulnerabilities.}
+        \label{tab:blockchain_history_analyzers}
+    \end{center}
+\end{table}
+\todo{better caption}
 
 \chapter{Frontrunning definitions}
+
+\todo{Is it important to differentiate between sandwich attacks and displacement attacks?}
+\todo{Should we go from first source to last sink? eg in a swap call, we will have multiple LOG events at different levels.}
 
 \section{TOD sources}
 
@@ -237,6 +264,10 @@ Nonce is also incremented by EOA calls.
 
 \chapter{TOD attack mining}
 
+
+% NOTE: the mined attacks won't be representative of all contracts
+%'s favored towards attacked contracts, and to frequently-used contracts
+
 \section{Related approaches}
 
 \subsection{Combatting paper - Erebus-redgiant}
@@ -307,6 +338,9 @@ Exclusion criteria:
 \subsection{Deduplication}
 
 We want a diverse set of attacks for the benchmark, so we filter out similar attacks to the ones we already analyzed. For instance, it does not make sense to analyze 5000 attacks for the USDT Stablecoin, as these will mostly collide.
+
+If possible, we don't need the traces analyzer for deduplication. For instance, maybe we can get all the necessary information from the default RPC tracers.
+Alternatively, we could also download all necessary data, and then loop through the traces analyzer and only pick the relevant (deduplicated) potential attacks.
 
 Ideas, potentially a mixture of those:
 
