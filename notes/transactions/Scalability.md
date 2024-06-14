@@ -1,30 +1,26 @@
-## Replayer
+## T-RACE
 
-Creating traces with complete stack and memory for each step, using REVM with RPC caching and the Merkle API:
+For 10 blocks (19895500-19895509).
+*Note: time and storage will likely double, for analyzing also the attacker transactions*
 
-|               | Actual | Per attack | For 10.000 attacks |
-| ------------- | -----: | ---------: | -----------------: |
-| Time          |    20m |        12s |           1.4 days |
-| Attacks       |    100 |          1 |             10.000 |
-| API requests  |    10k |        100 |              1000k |
-| API price     | € 0.07 |      0.07c |                 7€ |
-| output        |  13 GB |     130 MB |             1.3 TB |
-| output.tar.gz | 0.2 GB |       2 MB |              20 GB |
-| RPC cache     |  10 MB |     0.1 MB |               1 GB |
+Analyzed attacks: 1376
+Successful: 1356 (98.5%)
+No TOD found: 6 (0.5%)
+Error: 14 (1%)
 
-## Traces Analyzer
+RPC price: $0.5
 
-|                  | Actual | Per attack | For 10.000 attacks |
-| ---------------- | -----: | ---------: | -----------------: |
-| Time             |    40m |        12s |           1.4 days |
-| Attacks          |    200 |          1 |             10.000 |
-| (current output) | 0.4 GB |       2 MB |              20 GB |
+|      | Actual     | For 10.000 attacks |
+| ---- | ---------- | ------------------ |
+| Time | 70 minutes | 8.5 hours          |
+| Size | 14 GB      | 100 GB             |
 
-## TOD Attack Miner
-
-TOD-O
-
-prestateTracer: ~1-2s per request, basically no cost, dunno the storage.
-stateDiff: ~1-3s per request !!! $ 0.2 for 130 requests !!! dunno the storage.
-
-Also: cache is not supported for trace_replayBlockTransactoins -> need to add it.
+mine:
+- a few seconds
+- 5 MB
+trace:
+- an hour (from a fresh cache)
+- 13 GB
+analyze:
+- 10 minutes
+- 0.5 GB
