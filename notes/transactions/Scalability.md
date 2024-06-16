@@ -2,6 +2,7 @@
 
 For 10 blocks (19895500-19895509).
 *Note: time and storage will likely double, for analyzing also the attacker transactions*
+*Note: time for tracing will be lower because I've added parallelism*
 
 Analyzed attacks: 1376
 Successful: 1356 (98.5%)

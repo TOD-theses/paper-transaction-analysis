@@ -322,6 +322,8 @@ Problems with this approach:
 
 \section{TOD candidate finding}
 
+We find transaction pairs $(T_A, T_B)$, such that $T_A$ modified some state that was accessed by $T_B$. Contrary to the definition of TOD, this does not necessarily mean, that the execution of $T_B$ yields a different result because of $T_A$. For instance if $T_A$ modifies storage value from $1$ to $2$ and $T_B$ loads this storage value without using it, there is no impact on $T_B$. However, as we show later, this is a good approximation \todo{is it?}.
+
 \subsection{Prestates}
 
 Inclusion criteria.
