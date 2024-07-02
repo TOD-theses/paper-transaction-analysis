@@ -26,6 +26,9 @@
 
 % custom packages
 \usepackage{threeparttable}
+\usepackage{makecell}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
 
 
 % Define convenience functions to use the author name and the thesis title in the PDF document properties.
@@ -108,19 +111,19 @@
 \addstatementpage
 
 \begin{danksagung*}
-\todo{Ihr Text hier.}
+    \todo{Ihr Text hier.}
 \end{danksagung*}
 
 \begin{acknowledgements*}
-\todo{Enter your text here.}
+    \todo{Enter your text here.}
 \end{acknowledgements*}
 
 \begin{kurzfassung}
-\todo{Ihr Text hier.}
+    \todo{Ihr Text hier.}
 \end{kurzfassung}
 
 \begin{abstract}
-\todo{Enter your text here.}
+    \todo{Enter your text here.}
 \end{abstract}
 
 % Select the language of the thesis, e.g., english or naustrian.
@@ -150,125 +153,32 @@ Interesting things:
 See table \ref{tab:blockchain_history_analyzers}.
 
 
+% TODO: is there related work in the parallel EVM field? TOD is highly relevant for this
+% https://ieeexplore.ieee.org/abstract/document/10102454
+
+
 \begin{table}[h]
     \begin{center}
         \begin{tabular}{ | l | c  | c | c | c | }
             \hline
-            Tool/Authors & Scope \\ \hline
-            EthScope \cite{wu_time-travel_2022} & Generalized \\ \hline
-            TokenScope \cite{chen_tokenscope_2019} & ERC-20 tokens \\ \hline
-            TXSPECTOR \cite{zhang_txspector_2020} & Generalized \\ \hline
-            Horus \cite{ferreira_torres_eye_2021} & Generalized \\ \hline
-            SODA \cite{chen_soda_2020} &  Generalized \\ \hline
-            DEFIER \cite{su_evil_2021} & Generalized \\ \hline
-            Zhou et al. \cite{zhou_ever-evolving_2020} & Generalized \\ \hline
-            Perez et al. \cite{perez_smart_2021} & Generalized \\ \hline
-            Wang et al. \cite{wang_impact_2022} & Sandwich attacks \\ \hline
-            Erebus-Redgiant \cite{zhang_combatting_2023} & Frontrunning \\ \hline
-            Frontrunner Jones \cite{torres_frontrunner_2021} & Frontrunning \\ \hline
+            Tool/Authors                                     & Scope            \\ \hline
+            EthScope \cite{wu_time-travel_2022}              & Generalized      \\ \hline
+            TokenScope \cite{chen_tokenscope_2019}           & ERC-20 tokens    \\ \hline
+            TXSPECTOR \cite{zhang_txspector_2020}            & Generalized      \\ \hline
+            Horus \cite{ferreira_torres_eye_2021}            & Generalized      \\ \hline
+            SODA \cite{chen_soda_2020}                       & Generalized      \\ \hline
+            DEFIER \cite{su_evil_2021}                       & Generalized      \\ \hline
+            Zhou et al. \cite{zhou_ever-evolving_2020}       & Generalized      \\ \hline
+            Perez et al. \cite{perez_smart_2021}             & Generalized      \\ \hline
+            Wang et al. \cite{wang_impact_2022}              & Sandwich attacks \\ \hline
+            Erebus-Redgiant \cite{zhang_combatting_2023}     & Frontrunning     \\ \hline
+            Frontrunner Jones \cite{torres_frontrunner_2021} & Frontrunning     \\ \hline
         \end{tabular}
         \caption{Blockchain history analysis references. Generalized means, that the data collection and analysis framework is not tailored to specific vulnerabilities.}
         \label{tab:blockchain_history_analyzers}
     \end{center}
 \end{table}
 \todo{better caption}
-
-\chapter{Frontrunning definitions}
-
-\todo{Is it important to differentiate between sandwich attacks and displacement attacks?}
-\todo{Should we go from first source to last sink? eg in a swap call, we will have multiple LOG events at different levels.}
-
-\section{TOD sources}
-
-For $T_A \rightarrow T_B$:
-
-\begin{enumerate}
-    \item TOD write point: point, where $T_A$ modifies some state, that is read by $T_B$
-    \item TOD read point: point, where $T_B$ reads some state, that was modified by $T_A$
-    \item TOD hidden write point: point, where $T_A$ modifies some state, that is overwritten by $T_B$
-    \item TOD overwrite point: point, where $T_B$ overwrites some state, that was written by $T_A$
-\end{enumerate}
-
-The pair of (TOD write point, TOD read point) presents a write-read conflict. The pair of (TOD hidden write point, TOD overwrite point) presents a write-write conflict.
-
-If we have a write-read conflict and a write-write conflict, $T_B$ reads some state and then overwrites it. Thus, $T_B$ knows of the modified state before overwriting.
-
-One instance would be a simple counter, where both $T_A$ and $T_B$ increment the same counter in the state. Here, we would have a write-read conflict, as $T_B$ reads the counter incremented by $T_A$. And further, we would have a write-write conflict, as $T_B$ updates the same counter as $T_A$.
-
-ERC-20 approval attack would consist of the hidden write point (where approval is set to 0) and an overwrite point (where approval is set to some higher value).
-
-ERC-20 approval migitation (with require for the prev value) would consist of a write point (where approval is set to 0) and a read point (where the approval is used for the require statement).
-
-Uniswap token swap would consist of both a write-read conflict and a write-write conflict. The write-read conflict exists, as $T_A$ modifies the reserves state and $T_B$ reads the current reserves to calculate a price. The write-write conflict exists, as $T_A$ modifies the reserves state and $T_B$ modifies it as well. Contrary to ERC-20 approval, the overwritten value depends on the previous value (which we could show in the data flow graph).
-
-\subsection{State reading instructions}
-
-The EVM uses the nonce to check if an account already exists. For CALL, CALLCODE and SELFDESTRUCT, this is used to calculate the gas costs. For CREATE and CREATE2, this is used to prevent creating an account at an already active address.
-
-See table \ref{tab:state_reading_instructions}.
-
-\begin{table}[h]
-    \begin{center}
-        \begin{tabular}{ | l | c  | c | c | c | }
-            \hline
-            Instruction     & Storage   & Balance       & Code          & Nonce \\ \hline
-            SLOAD &         \checkmark  &               &               & \\  \hline
-            BALANCE &                   & \checkmark    &               & \\ \hline
-            SELFBALANCE &               & \checkmark    &               & \\ \hline
-            CODESIZE &                  &               & \checkmark    & \\ \hline
-            CODECOPY &                  &               & \checkmark    & \\ \hline
-            EXTCODECOPY &               &               & \checkmark    & \\ \hline
-            EXTCODESIZE &               &               & \checkmark    & \\ \hline
-            EXTCODEHASH &               &               & \checkmark    & \\ \hline
-            CALL &                      & \checkmark    & \checkmark    & \checkmark \\ \hline
-            CALLCODE &                  & \checkmark    & \checkmark    & \checkmark \\ \hline
-            STATICCALL &                &               & \checkmark    & \\ \hline
-            DELEGATECALL &              &               & \checkmark    & \\ \hline
-            CREATE &                    & \checkmark    & \checkmark    & \checkmark \\ \hline
-            CREATE2 &                   & \checkmark    & \checkmark    & \checkmark \\ \hline
-            SELFDESTRUCT &              & \checkmark    & \checkmark    & \checkmark \\ \hline
-        \end{tabular}
-        \caption{Instructions that access state. A checkmark indicates, that the execution of this instruction can depend on this state type.}
-        \label{tab:state_reading_instructions}
-    \end{center}
-\end{table}
-
-\subsection{State writing instructions}
-
-See table \ref{tab:state_writing_instructions}.
-
-\begin{table}[h]
-    \begin{center}
-        \begin{tabular}{ | l | c  | c | c | c | }
-            \hline
-            Instruction     & Storage   & Balance       & Code          & Nonce \\ \hline
-            SSTORE &        \checkmark  &               &               & \\ \hline
-            CALL &                      & \checkmark    &               & \\ \hline
-            CALLCODE &                  & \checkmark    &               & \\ \hline
-            STATICCALL &                &               &               & \\ \hline
-            DELEGATECALL &              &               &               & \\ \hline
-            CREATE &                    & \checkmark    & \checkmark    & \checkmark \\ \hline
-            CREATE2 &                   & \checkmark    & \checkmark    & \checkmark \\ \hline
-            SELFDESTRUCT &  \checkmark  & \checkmark    & \checkmark    & \checkmark \\ \hline
-        \end{tabular}
-        \caption{Instructions that modify state. A checkmark indicates, that the execution of this instruction can modify this state type.}
-        \label{tab:state_writing_instructions}
-    \end{center}
-\end{table}
-
-Nonce is also incremented by EOA calls.
-
-Balance is also modified by EOA calls.
-
-\section{TOD sinks}
-
-\section{TOD sanitizers}
-
-\chapter{TOD attack mining}
-
-
-% NOTE: the mined attacks won't be representative of all contracts
-%'s favored towards attacked contracts, and to frequently-used contracts
 
 \section{Related approaches}
 
@@ -309,35 +219,212 @@ Problems with this approach:
 
 \begin{enumerate}
     \item prerequesites is an arbitrary choice
-    \subitem what if prerequesites have collisions with the attack?
-    \subitem what if prerequesites depend on other transactions that were not replayed?
-    \subitem what if victim tx depends on other transactions that were not replayed?
+          \subitem what if prerequesites have collisions with the attack?
+          \subitem what if prerequesites depend on other transactions that were not replayed?
+          \subitem what if victim tx depends on other transactions that were not replayed?
     \item all transactions share the same context
-    \subitem attack tx is moved to different context
-    \subitem prerequesites are potentially moved to different context
-    \subitem (victim tx stays in same context \checkmark)
+          \subitem attack tx is moved to different context
+          \subitem prerequesites are potentially moved to different context
+          \subitem (victim tx stays in same context \checkmark)
     \item replay is done with a different environment
 \end{enumerate}
 
 
+\chapter{Frontrunning definitions}
+
+\todo{Is it important to differentiate between sandwich attacks and displacement attacks?}
+\todo{Should we go from first source to last sink? eg in a swap call, we will have multiple LOG events at different levels.}
+
+\section{TOD sources}
+
+For $T_A \rightarrow T_B$:
+
+\begin{enumerate}
+    \item TOD write point: point, where $T_A$ modifies some state, that is read by $T_B$
+    \item TOD read point: point, where $T_B$ reads some state, that was modified by $T_A$
+    \item TOD hidden write point: point, where $T_A$ modifies some state, that is overwritten by $T_B$
+    \item TOD overwrite point: point, where $T_B$ overwrites some state, that was written by $T_A$
+\end{enumerate}
+
+The pair of (TOD write point, TOD read point) presents a write-read conflict. The pair of (TOD hidden write point, TOD overwrite point) presents a write-write conflict.
+
+If we have a write-read conflict and a write-write conflict, $T_B$ reads some state and then overwrites it. Thus, $T_B$ knows of the modified state before overwriting.
+
+One instance would be a simple counter, where both $T_A$ and $T_B$ increment the same counter in the state. Here, we would have a write-read conflict, as $T_B$ reads the counter incremented by $T_A$. And further, we would have a write-write conflict, as $T_B$ updates the same counter as $T_A$.
+
+ERC-20 approval attack would consist of the hidden write point (where approval is set to 0) and an overwrite point (where approval is set to some higher value).
+
+ERC-20 approval migitation (with require for the prev value) would consist of a write point (where approval is set to 0) and a read point (where the approval is used for the require statement).
+
+Uniswap token swap would consist of both a write-read conflict and a write-write conflict. The write-read conflict exists, as $T_A$ modifies the reserves state and $T_B$ reads the current reserves to calculate a price. The write-write conflict exists, as $T_A$ modifies the reserves state and $T_B$ modifies it as well. Contrary to ERC-20 approval, the overwritten value depends on the previous value (which we could show in the data flow graph).
+
+\subsection{State reading instructions}
+
+The EVM uses the nonce to check if an account already exists. For CALL, CALLCODE and SELFDESTRUCT, this is used to calculate the gas costs. For CREATE and CREATE2, this is used to prevent creating an account at an already active address.
+
+See table \ref{tab:state_reading_instructions}.
+
+\begin{table}[h]
+    \begin{center}
+        \begin{tabular}{ | l | c  | c | c | c | }
+            \hline
+            Instruction  & Storage    & Balance    & Code       & Nonce      \\ \hline
+            SLOAD        & \checkmark &            &            &            \\  \hline
+            BALANCE      &            & \checkmark &            &            \\ \hline
+            SELFBALANCE  &            & \checkmark &            &            \\ \hline
+            CODESIZE     &            &            & \checkmark &            \\ \hline
+            CODECOPY     &            &            & \checkmark &            \\ \hline
+            EXTCODECOPY  &            &            & \checkmark &            \\ \hline
+            EXTCODESIZE  &            &            & \checkmark &            \\ \hline
+            EXTCODEHASH  &            &            & \checkmark &            \\ \hline
+            CALL         &            & \checkmark & \checkmark & \checkmark \\ \hline
+            CALLCODE     &            & \checkmark & \checkmark & \checkmark \\ \hline
+            STATICCALL   &            &            & \checkmark &            \\ \hline
+            DELEGATECALL &            &            & \checkmark &            \\ \hline
+            CREATE       &            & \checkmark & \checkmark & \checkmark \\ \hline
+            CREATE2      &            & \checkmark & \checkmark & \checkmark \\ \hline
+            SELFDESTRUCT &            & \checkmark & \checkmark & \checkmark \\ \hline
+        \end{tabular}
+        \caption{Instructions that access state. A checkmark indicates, that the execution of this instruction can depend on this state type.}
+        \label{tab:state_reading_instructions}
+    \end{center}
+\end{table}
+
+\subsection{State writing instructions}
+
+See table \ref{tab:state_writing_instructions}.
+
+\begin{table}[h]
+    \begin{center}
+        \begin{tabular}{ | l | c  | c | c | c | }
+            \hline
+            Instruction  & Storage    & Balance    & Code       & Nonce      \\ \hline
+            SSTORE       & \checkmark &            &            &            \\ \hline
+            CALL         &            & \checkmark &            &            \\ \hline
+            CALLCODE     &            & \checkmark &            &            \\ \hline
+            STATICCALL   &            &            &            &            \\ \hline
+            DELEGATECALL &            &            &            &            \\ \hline
+            CREATE       &            & \checkmark & \checkmark & \checkmark \\ \hline
+            CREATE2      &            & \checkmark & \checkmark & \checkmark \\ \hline
+            SELFDESTRUCT & \checkmark & \checkmark & \checkmark & \checkmark \\ \hline
+        \end{tabular}
+        \caption{Instructions that modify state. A checkmark indicates, that the execution of this instruction can modify this state type.}
+        \label{tab:state_writing_instructions}
+    \end{center}
+\end{table}
+
+Nonce is also incremented by EOA calls.
+
+Balance is also modified by EOA calls.
+
+\section{TOD sinks}
+
+\section{TOD sanitizers}
+
+\chapter{TOD attack mining}
+
+In this chapter, we discuss how we search for potential TODs in the Ethereum history. The methodology is visualized in \todo{graph}. First, we use the \verb|debug_traceBlockByNumber| RPC method to obtain the accessed and modified state of the transactions and store them locally in a database. Then, we match the accessed and modified states of all transactions to get TOD transaction pairs, where one transaction modifies some state and the other transaction reads this state. For simplicity, we will call these potential TOD transaction pairs "TOD candidates". Finally, we use several heuristics to filter out TOD candidates, which are not relevant for the further analysis.
+
+% NOTE: the mined attacks won't be representative of all contracts
+%'s favored towards attacked contracts, and to frequently-used contracts
+
 \section{TOD candidate finding}
 
-We find transaction pairs $(T_A, T_B)$, such that $T_A$ modified some state that was accessed by $T_B$. Contrary to the definition of TOD, this does not necessarily mean, that the execution of $T_B$ yields a different result because of $T_A$. For instance if $T_A$ modifies storage value from $1$ to $2$ and $T_B$ loads this storage value without using it, there is no impact on $T_B$. However, as we show later, this is a good approximation \todo{is it?}.
+In this step, we find transaction pairs $(T_A, T_B)$, such that $T_B$ read or modified some state, that was previously written by $T_A$. We consider all possible state modifications, namely nonce, balance, storage and code modifications.
 
-\subsection{Prestates}
+For all blocks we analyze, we replay each transaction in this block with the \verb|debug_traceBlockByNumber| RPC method. With the \verb|prestateTracer| we get the accessed state and state modifications by each transaction\footnote{When running the prestateTracer in diffMode, several fields are only implicit in the response. We need to make these fields explicit for further analysis. Refer to the documentation or the source code for further details.}\todo{reference}. We store this data in a local database for further analysis.
 
-Inclusion criteria.
+For a state access we store a $(T, K, V)$ entry, where $T$ is the state type, $K$ describes which state was accessed and $V$ is the accessed value. For instance, when a transaction reads the balance of a contract, we have $T = balance$, $K$ is the address of the contract and $V$ is the balance at this time. For nonce, balance and code we use the address as a key, and for storage slots we use the tuple of address and slot as a key.
+
+For a state modification we store a $(T, K, V_{pre}, V_{post})$ entry. $T$ and $K$ are the same as before. $V_{pre}$ is the state value before execution of the transaction and $V_{post}$ the value after the execution.
+
+After replaying all transactions, we match the state modifications with the state accesses. We query the database for transaction pairs $(T_A, T_B)$, where $T_A$ occurred before $T_B$ and $T_A$ has a state modification $(T, K, V_{pre}, V_{post})$ that matches a state access $(T, K, V_{post})$ of $T_B$.\todo{Reference indirect dependency section, add statistic what it would be without this}
+
+
+\iffalse
+    Contrary to the definition of TOD, this does not necessarily mean, that the execution of $T_B$ yields a different result because of $T_A$. For instance if $T_A$ modifies storage value from $1$ to $2$ and $T_B$ loads this storage value without using it, there is no impact on $T_B$. \todo{this should go to the definition/general TOD discussion section}
+\fi
+
+
+
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{tod_collisions_hist.png}
+    \caption{The histogram and eCDF of the block distance for TOD transaction pairs. The blue bars show how many TOD transaction pairs have been found that are n blocks apart. The orange line shows the percentage of TOD transaction pairs, that are at most n blocks apart.}
+    \label{fig:tod_block_dist}
+\end{figure}
+
 
 \section{TOD candidate filtering}
 
-\subsection{Attack prerequesites}
+Many of the TOD candidates we gain in the previous section are not relevant for our further analysis. To prevent unnecessary computation and distortion of our results, we filter them out.
 
-Exclusion criteria:
+\begin{table}[h]
+    \begin{center}
+        \begin{tabular}{ | l | l |  }
+            \hline
+            \thead{Filter name}      & \thead{Short description}                            \\ \hline
+            Indirect dependency      & \makecell[l]{$T_A$ could indirectly influence $T_B$. \\For instance, if candidates $(T_A, T_X)$ and $(T_X, T_B)$ exist.} \\ \hline
+            Same sender              & $T_A$ is from the same sender as $T_B$.              \\ \hline
+            Recipient Ether transfer & $T_B$ is an Ether transfer without code execution.   \\ \hline
+            % Maybe: builders
+            % Maybe: what else?
+        \end{tabular}
+        \caption{TOD candidate filters.}
+        \label{tab:tod_candidate_filters}
+    \end{center}
+\end{table}
 
-\begin{enumerate}
-    \item $Tx_A$ is from the same sender as $Tx_B$.
-    \item $Tx_B$ is only an Ether transfer.
-\end{enumerate}
+We filter a TOD candidate $(T_A, T_B)$ if any of the filters from table \ref{tab:tod_candidate_filters} applies. The filters are explained in the following section.
+
+\subsection{Filters}
+
+\subsubsection{Indirect dependency}
+
+\iffalse
+    The overall goal of our analysis, is to analyze the effects of the transaction order. For this, we will take a TOD candidate $(T_A, T_B)$ and analyze what would have happened if they were executed in the opposite order, i.e. $(T_B, T_A)$.
+\fi
+
+As argued in section \todo{x}, indirect dependencies can hinder our analysis. We already have a model of all direct (potential) dependencies with the TOD candidates. We can build a transaction dependency graph $G = (V, E)$ with $V$ being all transactions and $E = \{ (T_A, T_B) \mid (T_A, T_B) \in \text{TOD candidates} \}$. We then filter out all TOD candidates $(T_A, T_B)$ where there exists a path $T_A, T_{X_1}, \dots, T_{X_n}, T_B$ with at least one intermediary node $T_{X_i}$.
+
+Figure \ref{fig:tod_candidate_dependency} shows an example dependency graph, where transaction $A$ influences both $X$ and $B$ and $B$ is influenced by all other transactions. We would filter out the candidate $(A, B)$ as there is a path going over $X$, but keep $(X, B)$ and $(C, B)$.
+
+\begin{figure}[h]
+    \centering
+    \begin{tikzpicture}
+        \begin{scope}[
+            >={Stealth[black]},
+            every node/.style={circle,thick,draw},
+            every edge/.style={draw=red,very thick}
+            ]
+            \node (A) at (3, 6) {A};
+            \node (B) at (4, 3) {B};
+            \node (C) at (5, 5) {C};
+            \node (X) at (2, 4) {X};
+            \path [->] (A) edge (B);
+            \path [->] (A) edge (X);
+            \path [->] (X) edge (B);
+            \path [->] (C) edge (B);
+        \end{scope}
+    \end{tikzpicture}
+    \caption{TOD candidate filters.}
+    \label{fig:tod_candidate_dependency}
+\end{figure}
+
+\subsubsection{Same sender}
+
+If the sender of both transactions is the same, they would have attacked themselves.
+
+To remove these TOD candidates, we use the information from the \verb|eth_getBlockByNumber| RPC method and compare the sender fields for $T_A$ and $T_B$.
+
+\subsubsection{Recipient Ether transfer}
+
+If a transaction sends Ether without execution code, it only depends on the balance of the EOA that signed the transaction. Other entities could only increase the balance of this EOA, by frontrunning the transaction, which has no adverse effects on the transaction.
+
+When a transaction executes code, the trace will show this code access. Thus, we can exclude TOD candidates, where $T_B$ has no code access.
+
+% TODO: extend this also to sender ether transfers. It's probably the same argument
 
 \subsection{Deduplication}
 
@@ -357,6 +444,10 @@ Ideas, potentially a mixture of those:
 \end{enumerate}
 
 \chapter{Trace analysis}
+
+% For instance, all EVM transactions in the same block read and write to the beneficiary account for gas payment, making all transactions interdependent by default.
+% Is this the case? Do we see this in the prestate tracer?
+% https://github.com/risechain/pevm
 
 \section{Trace replaying}
 
@@ -483,6 +574,12 @@ Using traces instead of a full-fledged EVM allows:
     \item interoperability with all nodes and other tools that produce traces
     \item automatic verification of the modelled data flows against the actual stack and memory
 \end{enumerate}
+
+\subsection{Data flow graph}
+
+Horus and EVMTracer use a similar approach, by building a shadow state that contains the dependency information for each value.
+
+We use a different approach, where our shadow state is directly used for computation. Furthermore, our approach is on byte level. Furthermore, our approach tracks data dependencies, rather than instruction step dependencies (and idk yet what exactly the dis-/advantages of that are).
 
 \section{Attack categorization}
 

@@ -1,0 +1,3 @@
+{"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qsubsection\\E$"}
+{"rule":"WHITESPACE_RULE","sentence":"^\\Qmale Pretitle Forename Surname Posttitle male\\E$"}
+{"rule":"POSSESSIVE_APOSTROPHE","sentence":"^\\QIf possible, we don't need the traces analyzer for deduplication.\\E$"}
