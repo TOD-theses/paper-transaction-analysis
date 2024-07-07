@@ -213,18 +213,18 @@ Replaying in the attack free scenario:
     \item apply + trace attack tx
 \end{enumerate}
 
-For prerequesites, refer to \href{https://github.com/Troublor/erebus-redgiant/blob/4544163f0c6a369b35c3237851f482d240fa7bbd/dataset/tx_history_test.go#L42-L53}.
+For prerequisites, refer to \href{https://github.com/Troublor/erebus-redgiant/blob/4544163f0c6a369b35c3237851f482d240fa7bbd/dataset/tx_history_test.go#L42-L53}.
 
 Problems with this approach:
 
 \begin{enumerate}
-    \item prerequesites is an arbitrary choice
-          \subitem what if prerequesites have collisions with the attack?
-          \subitem what if prerequesites depend on other transactions that were not replayed?
+    \item Prerequisites is an arbitrary choice
+          \subitem what if prerequisites have collisions with the attack?
+          \subitem what if prerequisites depend on other transactions that were not replayed?
           \subitem what if victim tx depends on other transactions that were not replayed?
     \item all transactions share the same context
           \subitem attack tx is moved to different context
-          \subitem prerequesites are potentially moved to different context
+          \subitem prerequisites are potentially moved to different context
           \subitem (victim tx stays in same context \checkmark)
     \item replay is done with a different environment
 \end{enumerate}
@@ -233,11 +233,13 @@ Problems with this approach:
 \chapter{Frontrunning definitions}
 
 \todo{Is it important to differentiate between sandwich attacks and displacement attacks?}
-\todo{Should we go from first source to last sink? eg in a swap call, we will have multiple LOG events at different levels.}
+\todo{Should we go from first source to last sink? e.g. in a swap call, we will have multiple LOG events at different levels.}
 
 \section{TOD sources}
 
 For $T_A \rightarrow T_B$:
+
+\todo{I think this is similar to the $attack altered data$ / taint source from the combatting paper}
 
 \begin{enumerate}
     \item TOD write point: point, where $T_A$ modifies some state, that is read by $T_B$
@@ -364,11 +366,12 @@ Many of the TOD candidates we gain in the previous section are not relevant for 
     \begin{center}
         \begin{tabular}{ | l | l |  }
             \hline
-            \thead{Filter name}      & \thead{Short description}                            \\ \hline
-            Indirect dependency      & \makecell[l]{$T_A$ could indirectly influence $T_B$. \\For instance, if candidates $(T_A, T_X)$ and $(T_X, T_B)$ exist.} \\ \hline
-            Same sender              & $T_A$ is from the same sender as $T_B$.              \\ \hline
-            Recipient Ether transfer & $T_B$ is an Ether transfer without code execution.   \\ \hline
-            % Maybe: builders
+            \thead{Filter name}      & \thead{Short description}                                  \\ \hline
+            Indirect dependency      & \makecell[l]{$T_A$ could indirectly influence $T_B$.       \\For instance, if candidates $(T_A, T_X)$ and $(T_X, T_B)$ exist.} \\ \hline
+            Block producers          & The state overlap is only the balance of a block producer. \\ \hline
+            EOA nonce                & The state overlap is only the nonce of an EOA.             \\ \hline
+            Same sender              & $T_A$ is from the same sender as $T_B$.                    \\ \hline
+            Recipient Ether transfer & $T_B$ is an Ether transfer without code execution.         \\ \hline
             % Maybe: what else?
         \end{tabular}
         \caption{TOD candidate filters.}
@@ -380,6 +383,14 @@ We filter a TOD candidate $(T_A, T_B)$ if any of the filters from table \ref{tab
 
 \subsection{Filters}
 
+\subsubsection{Block producers}
+
+In Ethereum, each transaction must pay a transaction fee to the block producer and thus modifies the block producer's\todo{Is this a correct '?} balance. This would qualify each transaction pair in a block as a TOD candidate, as they all modify the balance of the block producer's address.
+
+We exclude TOD candidates, where the only collision\todo{Did we define "collision" previously?} is the balance of any block producer.
+
+\todo{Graph on transaction fee dependencies}
+
 \subsubsection{Indirect dependency}
 
 \iffalse
@@ -389,6 +400,8 @@ We filter a TOD candidate $(T_A, T_B)$ if any of the filters from table \ref{tab
 As argued in section \todo{x}, indirect dependencies can hinder our analysis. We already have a model of all direct (potential) dependencies with the TOD candidates. We can build a transaction dependency graph $G = (V, E)$ with $V$ being all transactions and $E = \{ (T_A, T_B) \mid (T_A, T_B) \in \text{TOD candidates} \}$. We then filter out all TOD candidates $(T_A, T_B)$ where there exists a path $T_A, T_{X_1}, \dots, T_{X_n}, T_B$ with at least one intermediary node $T_{X_i}$.
 
 Figure \ref{fig:tod_candidate_dependency} shows an example dependency graph, where transaction $A$ influences both $X$ and $B$ and $B$ is influenced by all other transactions. We would filter out the candidate $(A, B)$ as there is a path going over $X$, but keep $(X, B)$ and $(C, B)$.
+
+For soundness, we would want to apply this filter first: If another filter removes a TOD candidate, the information about this dependency is removed from the dependency graph, and we could miss potential indirect dependencies. However, because of transaction fees, there would be a dependency between every transaction of the same block, and we have an indirect dependency between nearly all transactions of a block. This dependency could only be a problem, if a transaction actually uses the balance value of the miner. We neglect this case, and filter out block producer dependencies first.
 
 \begin{figure}[h]
     \centering
@@ -418,6 +431,14 @@ If the sender of both transactions is the same, they would have attacked themsel
 
 To remove these TOD candidates, we use the information from the \verb|eth_getBlockByNumber| RPC method and compare the sender fields for $T_A$ and $T_B$.
 
+\subsubsection{EOA nonce}
+
+% TODO: not exactly true / not argued well enough. What if 2nd transaction accesses EOA nonce? I guess not possible, be explicit about that
+
+The nonce of an externally owned account is only increased when they send a transaction. As such, a collision on EOA nonces can only occur if both transactions are from the same sender. However, when using the state accesses and modifications from \verb|debug_traceBlockByNumber|, it also marks the nonce of EOA accounts as accessed, even if only the balance was accessed.
+
+To exclude these cases, where the nonce is wrongly included in the accessed fields, we remove nonce accesses for EOA addresses.
+
 \subsubsection{Recipient Ether transfer}
 
 If a transaction sends Ether without execution code, it only depends on the balance of the EOA that signed the transaction. Other entities could only increase the balance of this EOA, by frontrunning the transaction, which has no adverse effects on the transaction.
@@ -425,6 +446,9 @@ If a transaction sends Ether without execution code, it only depends on the bala
 When a transaction executes code, the trace will show this code access. Thus, we can exclude TOD candidates, where $T_B$ has no code access.
 
 % TODO: extend this also to sender ether transfers. It's probably the same argument
+% The receiver of an eth transfer without code exection must be EOA
+% However, the 2nd transaction *could* read the balance of this EOA
+% and thus be impacted by the 1st transfer -> could filter with an opcode tracer
 
 \subsection{Deduplication}
 
