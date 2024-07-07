@@ -229,8 +229,102 @@ Problems with this approach:
     \item replay is done with a different environment
 \end{enumerate}
 
+\chapter{TOD and Frontrunning definitions}
 
-\chapter{Frontrunning definitions}
+\section{Transaction execution}
+
+In Ethereum, transaction execution is deterministic: If the transaction is executed in a specific block environment and world state, it will always produce the same result. The result is used to update the world state, which we model as a function $\Pi(T, E, \sigma) = \sigma\prime$, where $T$ is the transaction, $E$ is the block environment and $\sigma$ is the world state.
+
+In this paper, we are interested in the effects of the transaction order. If we reorder transactions across multiple blocks, they would execute in a different block environment than they did originally. The effects of block environments are already covered in several other vulnerability definitions\todo{Reference}. Thus, we will exclude the possibility of changing block environments and assume that transactions are always executed in their original block environment. As such, we can think of the transaction execution as $\Pi(T, \sigma) = \sigma\prime$, also denoted as $\sigma \xrightarrow{T} \sigma\prime$ in the following.
+
+\todo{Notation for multiple transactions}
+
+\section{Transaction order dependence}
+
+We say, that a pair of transactions $(T_A, T_B)$ is transaction order dependent (TOD), if and only if:
+
+$$\sigma \xrightarrow{T_A, T_B} \sigma \prime$$
+$$\sigma \xrightarrow{T_B, T_A} \sigma \prime \prime$$
+$$\sigma \prime \neq \sigma \prime \prime$$
+
+\todo{What about logs? These are not part of the world state, but should also be modelled.}
+
+\subsection{Collision}
+
+Transactions are influenced by the world state and can also modify it. When a transaction $T$ accesses the world state, we denote it as $R_T$, when it modifies the world state, we denote it as $W_T$.
+
+$$R_T = \{ balance(addr), code(addr), nonce(addr), storage(addr, key) \}$$
+$$W_T = \{ balance(addr), code(addr), nonce(addr), storage(addr, key) \}$$
+
+We define the state collisions of two transactions as:
+
+$$collisions(T_A, T_B) = (W_{T_A} \cap R_{T_B}) \cup (W_{T_A} \cap W_{T_B})$$
+
+With $W_{T_A} \cap R_{T_B}$ we include write-read collisions, where $T_A$ modifies some state and $T_B$ accesses the same state. Therefore, the execution of $T_B$ depends on the value that $T_A$ wrote, which is a potential TOD. With $W_{T_A} \cap W_{T_B}$ we include write-write collisions, where both transactions write to the same state location. In this case, the value of this state location depends on which transaction was executed last, and thus this also is a potential TOD.
+
+\subsection{TOD candidate}
+
+We will refer to a transaction pair $(T_A, T_B)$, where $T_A$ was executed before $T_B$ and $collisions(T_A, T_B) \neq \emptyset$ as a TOD candidate.
+
+A TOD candidate is not necessarily TOD, for instance consider the case that $T_B$ only reads the value that $T_A$ wrote but never uses it for any computation. This would be a TOD candidate, as they have a collision, however the result of executing $T_B$ is not impacted by this collision.
+
+\todo{Write somewhere that being a TOD candidate is necessary for TOD.}
+
+\subsection{State accessing instructions}
+
+The EVM instructions in table \ref{tab:state_reading_instructions} can access the world state. For most the reason of the access is clear, for instance \verb|BALANCE| needs to access the balance of the target address.
+\todo{Write that I got this from the wood paper.}
+
+Less obvious is the nonce access of several instructions, which is because the EVM uses the nonce (among other things) to check if an account already exists. For CALL, CALLCODE and SELFDESTRUCT, this is used to calculate the gas costs. For CREATE and CREATE2, this is used to prevent creating an account at an already active address. \cite{wood}\todo{Fix citation}
+
+\begin{table}[h]
+    \begin{center}
+        \begin{tabular}{ | l | c  | c | c | c | }
+            \hline
+            Instruction  & Storage    & Balance    & Code       & Nonce      \\ \hline
+            SLOAD        & \checkmark &            &            &            \\ \hline
+            BALANCE      &            & \checkmark &            &            \\ \hline
+            SELFBALANCE  &            & \checkmark &            &            \\ \hline
+            CODESIZE     &            &            & \checkmark &            \\ \hline
+            CODECOPY     &            &            & \checkmark &            \\ \hline
+            EXTCODECOPY  &            &            & \checkmark &            \\ \hline
+            EXTCODESIZE  &            &            & \checkmark &            \\ \hline
+            EXTCODEHASH  &            &            & \checkmark &            \\ \hline
+            CALL         &            & \checkmark & \checkmark & \checkmark \\ \hline
+            CALLCODE     &            & \checkmark & \checkmark & \checkmark \\ \hline
+            STATICCALL   &            &            & \checkmark &            \\ \hline
+            DELEGATECALL &            &            & \checkmark &            \\ \hline
+            CREATE       &            & \checkmark & \checkmark & \checkmark \\ \hline
+            CREATE2      &            & \checkmark & \checkmark & \checkmark \\ \hline
+            SELFDESTRUCT &            & \checkmark & \checkmark & \checkmark \\ \hline
+        \end{tabular}
+        \caption{Instructions that access state. A checkmark indicates, that the execution of this instruction can depend on this state type.}
+        \label{tab:state_reading_instructions}
+    \end{center}
+\end{table}
+
+\subsection{State modifying instructions}
+
+In table \ref{tab:state_writing_instructions} we see instructions that can modify the world state.
+
+\begin{table}[h]
+    \begin{center}
+        \begin{tabular}{ | l | c  | c | c | c | }
+            \hline
+            Instruction  & Storage    & Balance    & Code       & Nonce      \\ \hline
+            SSTORE       & \checkmark &            &            &            \\ \hline
+            CALL         &            & \checkmark &            &            \\ \hline
+            CALLCODE     &            & \checkmark &            &            \\ \hline
+            CREATE       &            & \checkmark & \checkmark & \checkmark \\ \hline
+            CREATE2      &            & \checkmark & \checkmark & \checkmark \\ \hline
+            SELFDESTRUCT & \checkmark & \checkmark & \checkmark & \checkmark \\ \hline
+        \end{tabular}
+        \caption{Instructions that modify state. A checkmark indicates, that the execution of this instruction can modify this state type.}
+        \label{tab:state_writing_instructions}
+    \end{center}
+\end{table}
+
+\section{todo}
 
 \todo{Is it important to differentiate between sandwich attacks and displacement attacks?}
 \todo{Should we go from first source to last sink? e.g. in a swap call, we will have multiple LOG events at different levels.}
@@ -260,70 +354,11 @@ ERC-20 approval migitation (with require for the prev value) would consist of a 
 
 Uniswap token swap would consist of both a write-read conflict and a write-write conflict. The write-read conflict exists, as $T_A$ modifies the reserves state and $T_B$ reads the current reserves to calculate a price. The write-write conflict exists, as $T_A$ modifies the reserves state and $T_B$ modifies it as well. Contrary to ERC-20 approval, the overwritten value depends on the previous value (which we could show in the data flow graph).
 
-\subsection{State reading instructions}
-
-The EVM uses the nonce to check if an account already exists. For CALL, CALLCODE and SELFDESTRUCT, this is used to calculate the gas costs. For CREATE and CREATE2, this is used to prevent creating an account at an already active address.
-
-See table \ref{tab:state_reading_instructions}.
-
-\begin{table}[h]
-    \begin{center}
-        \begin{tabular}{ | l | c  | c | c | c | }
-            \hline
-            Instruction  & Storage    & Balance    & Code       & Nonce      \\ \hline
-            SLOAD        & \checkmark &            &            &            \\  \hline
-            BALANCE      &            & \checkmark &            &            \\ \hline
-            SELFBALANCE  &            & \checkmark &            &            \\ \hline
-            CODESIZE     &            &            & \checkmark &            \\ \hline
-            CODECOPY     &            &            & \checkmark &            \\ \hline
-            EXTCODECOPY  &            &            & \checkmark &            \\ \hline
-            EXTCODESIZE  &            &            & \checkmark &            \\ \hline
-            EXTCODEHASH  &            &            & \checkmark &            \\ \hline
-            CALL         &            & \checkmark & \checkmark & \checkmark \\ \hline
-            CALLCODE     &            & \checkmark & \checkmark & \checkmark \\ \hline
-            STATICCALL   &            &            & \checkmark &            \\ \hline
-            DELEGATECALL &            &            & \checkmark &            \\ \hline
-            CREATE       &            & \checkmark & \checkmark & \checkmark \\ \hline
-            CREATE2      &            & \checkmark & \checkmark & \checkmark \\ \hline
-            SELFDESTRUCT &            & \checkmark & \checkmark & \checkmark \\ \hline
-        \end{tabular}
-        \caption{Instructions that access state. A checkmark indicates, that the execution of this instruction can depend on this state type.}
-        \label{tab:state_reading_instructions}
-    \end{center}
-\end{table}
-
-\subsection{State writing instructions}
-
-See table \ref{tab:state_writing_instructions}.
-
-\begin{table}[h]
-    \begin{center}
-        \begin{tabular}{ | l | c  | c | c | c | }
-            \hline
-            Instruction  & Storage    & Balance    & Code       & Nonce      \\ \hline
-            SSTORE       & \checkmark &            &            &            \\ \hline
-            CALL         &            & \checkmark &            &            \\ \hline
-            CALLCODE     &            & \checkmark &            &            \\ \hline
-            STATICCALL   &            &            &            &            \\ \hline
-            DELEGATECALL &            &            &            &            \\ \hline
-            CREATE       &            & \checkmark & \checkmark & \checkmark \\ \hline
-            CREATE2      &            & \checkmark & \checkmark & \checkmark \\ \hline
-            SELFDESTRUCT & \checkmark & \checkmark & \checkmark & \checkmark \\ \hline
-        \end{tabular}
-        \caption{Instructions that modify state. A checkmark indicates, that the execution of this instruction can modify this state type.}
-        \label{tab:state_writing_instructions}
-    \end{center}
-\end{table}
-
-Nonce is also incremented by EOA calls.
-
-Balance is also modified by EOA calls.
-
 \section{TOD sinks}
 
 \section{TOD sanitizers}
 
-\chapter{TOD attack mining}
+\chapter{TOD candidate mining}
 
 In this chapter, we discuss how we search for potential TODs in the Ethereum history. The methodology is visualized in \todo{graph}. First, we use the \verb|debug_traceBlockByNumber| RPC method to obtain the accessed and modified state of the transactions and store them locally in a database. Then, we match the accessed and modified states of all transactions to get TOD transaction pairs, where one transaction modifies some state and the other transaction reads this state. For simplicity, we will call these potential TOD transaction pairs "TOD candidates". Finally, we use several heuristics to filter out TOD candidates, which are not relevant for the further analysis.
 
@@ -334,7 +369,7 @@ In this chapter, we discuss how we search for potential TODs in the Ethereum his
 
 In this step, we find transaction pairs $(T_A, T_B)$, such that $T_B$ read or modified some state, that was previously written by $T_A$. We consider all possible state modifications, namely nonce, balance, storage and code modifications.
 
-For all blocks we analyze, we replay each transaction in this block with the \verb|debug_traceBlockByNumber| RPC method. With the \verb|prestateTracer| we get the accessed state and state modifications by each transaction\footnote{When running the prestateTracer in diffMode, several fields are only implicit in the response. We need to make these fields explicit for further analysis. Refer to the documentation or the source code for further details.}\todo{reference}. We store this data in a local database for further analysis.
+For all blocks we analyze, we replay each transaction in this block with the \verb|debug_traceBlockByNumber| RPC method. Using the \verb|prestateTracer| we get the accessed state and state modifications by each transaction\footnote{When running the prestateTracer in diffMode, several fields are only implicit in the response. We need to make these fields explicit for further analysis. Refer to the documentation or the source code for further details.}\todo{reference}. We store this data in a local database for further analysis.
 
 For a state access we store a $(T, K, V)$ entry, where $T$ is the state type, $K$ describes which state was accessed and $V$ is the accessed value. For instance, when a transaction reads the balance of a contract, we have $T = balance$, $K$ is the address of the contract and $V$ is the balance at this time. For nonce, balance and code we use the address as a key, and for storage slots we use the tuple of address and slot as a key.
 
