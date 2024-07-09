@@ -229,6 +229,36 @@ Problems with this approach:
     \item replay is done with a different environment
 \end{enumerate}
 
+\chapter{Background}
+
+This chapter gives background knowledge on Ethereum, that is helpful to follow the remaining paper.
+
+\section{Ethereum}
+
+Ethereum is a blockchain, that can be characterized as a "transactional singleton machine with shared-state" \cite{wood_ethereum_2014}. By using a consensus protocol, a decentralized set of nodes agrees on a globally shared state. This state contains two types of accounts: \emph{externally owned accounts} (EOA) and \emph{contract accounts} (also referred to as smart contracts). Both are identified by a 20 byte address. Transitions of the shared state are achieved by executing \emph{transactions} \cite{tikhomirov_ethereum_2018}.
+
+\section{World State}
+
+Similar to \cite{wood_ethereum_2014}, we will refer to the shared state as "world state". This state maps addresses to account states, containing a \emph{nonce}, \emph{balance}, \emph{storage} and \emph{code}\footnote{Technically, the account state only contains hashes that identify the storage and code. This distinction is not relevant in this paper.}. They store following data \cite{wood_ethereum_2014}:
+
+\begin{itemize}
+    \item \emph{nonce}: For EOAs, this is the number of transactions submitted by this account. For contract accounts, this is the number of contracts created by this account.
+    \item \emph{balance}: The value of Wei, a smaller unit of Ether.
+    \item \emph{storage}: For contract accounts, the storage a mapping of storage slots to values. Both, key and value, are 256 bytes. For EOAs, this is empty.
+    \item \emph{code}: For contract accounts, the code is a sequence of EVM instructions.
+\end{itemize}
+
+We denote the world state as $\sigma$, the account state of an address $a$ as $\sigma(a)$ and the nonce, balance, storage and code of as $\sigma(a)_n$, $\sigma(a)_b$, $\sigma(a)_s$ and $\sigma(a)_c$ respectively.
+
+\section{Transactions}
+
+\section{Archive node}
+
+\section{RPC}
+
+\section{EVM}
+
+
 \chapter{TOD and Frontrunning definitions}
 
 \section{Transaction execution}
@@ -258,7 +288,7 @@ $$W_T = \{ balance(addr), code(addr), nonce(addr), storage(addr, key) \}$$
 
 We define the state collisions of two transactions as:
 
-$$collisions(T_A, T_B) = (W_{T_A} \cap R_{T_B}) \cup (W_{T_A} \cap W_{T_B})$$
+$$collisions(T_A, T_B) = (W_{T_A} \cap R_{T_B}) \cup (W_{T_A} \cap W_{T_B})$$ \todo{Do I want read-write as well? Would be TOD, but not an attack.}
 
 With $W_{T_A} \cap R_{T_B}$ we include write-read collisions, where $T_A$ modifies some state and $T_B$ accesses the same state. Therefore, the execution of $T_B$ depends on the value that $T_A$ wrote, which is a potential TOD. With $W_{T_A} \cap W_{T_B}$ we include write-write collisions, where both transactions write to the same state location. In this case, the value of this state location depends on which transaction was executed last, and thus this also is a potential TOD.
 
