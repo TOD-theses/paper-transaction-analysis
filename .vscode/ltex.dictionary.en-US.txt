@@ -22,3 +22,11 @@ SSTORE
 EOAs
 storageRoot
 codeHash
+naustrian
+EthScope
+TokenScope
+TXSPECTOR
+DEFIER
+Frontrunner
+Erebus-redgiant
+Uniswap

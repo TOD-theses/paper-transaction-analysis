@@ -171,14 +171,14 @@ See table \ref{tab:blockchain_history_analyzers}.
             Zhou et al. \cite{zhou_ever-evolving_2020}       & Generalized      \\ \hline
             Perez et al. \cite{perez_smart_2021}             & Generalized      \\ \hline
             Wang et al. \cite{wang_impact_2022}              & Sandwich attacks \\ \hline
-            Erebus-Redgiant \cite{zhang_combatting_2023}     & Frontrunning     \\ \hline
+            Erebus-redgiant \cite{zhang_combatting_2023}     & Frontrunning     \\ \hline
             Frontrunner Jones \cite{torres_frontrunner_2021} & Frontrunning     \\ \hline
         \end{tabular}
         \caption{Blockchain history analysis references. Generalized means, that the data collection and analysis framework is not tailored to specific vulnerabilities.}
         \label{tab:blockchain_history_analyzers}
     \end{center}
 \end{table}
-\todo{better caption}
+\todo{Better caption}
 
 \section{Related approaches}
 
@@ -186,7 +186,7 @@ See table \ref{tab:blockchain_history_analyzers}.
 
 How do they replay potential attack/victim transactions?
 
-Their framework allows to fork at a specific block and tx\_index.
+Their framework allows forking at a specific block and tx index.
 
 PrepareStateAndContext - replays up to tx index.
 
@@ -305,7 +305,7 @@ A TOD candidate is not necessarily TOD, for instance consider the case that $T_B
 The EVM instructions in table \ref{tab:state_reading_instructions} can access the world state. For most the reason of the access is clear, for instance \verb|BALANCE| needs to access the balance of the target address.
 \todo{Write that I got this from the wood paper.}
 
-Less obvious is the nonce access of several instructions, which is because the EVM uses the nonce (among other things) to check if an account already exists. For CALL, CALLCODE and SELFDESTRUCT, this is used to calculate the gas costs. For CREATE and CREATE2, this is used to prevent creating an account at an already active address. \cite{wood}\todo{Fix citation}
+Less obvious is the nonce access of several instructions, which is because the EVM uses the nonce (among other things) to check if an account already exists. For CALL, CALLCODE and SELFDESTRUCT, this is used to calculate the gas costs. For CREATE and CREATE2, this is used to prevent creating an account at an already active address. \cite{wood_ethereum_2014}
 
 \begin{table}[h]
     \begin{center}
@@ -380,7 +380,7 @@ One instance would be a simple counter, where both $T_A$ and $T_B$ increment the
 
 ERC-20 approval attack would consist of the hidden write point (where approval is set to 0) and an overwrite point (where approval is set to some higher value).
 
-ERC-20 approval migitation (with require for the prev value) would consist of a write point (where approval is set to 0) and a read point (where the approval is used for the require statement).
+ERC-20 approval mitigation (with require for the previous value) would consist of a write point (where approval is set to 0) and a read point (where the approval is used for the require statement).
 
 Uniswap token swap would consist of both a write-read conflict and a write-write conflict. The write-read conflict exists, as $T_A$ modifies the reserves state and $T_B$ reads the current reserves to calculate a price. The write-write conflict exists, as $T_A$ modifies the reserves state and $T_B$ modifies it as well. Contrary to ERC-20 approval, the overwritten value depends on the previous value (which we could show in the data flow graph).
 
