@@ -138,10 +138,6 @@
 \chapter{Introduction}
 \todo{Enter your text here.}
 
-\section{Ethereum}
-
-\section{Frontrunning}
-
 \section{Related work}
 
 Interesting things:
@@ -235,11 +231,11 @@ This chapter gives background knowledge on Ethereum, that is helpful to follow t
 
 \section{Ethereum}
 
-Ethereum is a blockchain, that can be characterized as a "transactional singleton machine with shared-state" \cite{wood_ethereum_2014}. By using a consensus protocol, a decentralized set of nodes agrees on a globally shared state. This state contains two types of accounts: \emph{externally owned accounts} (EOA) and \emph{contract accounts} (also referred to as smart contracts). Both are identified by a 20 byte address. Transitions of the shared state are achieved by executing \emph{transactions} \cite{tikhomirov_ethereum_2018}.
+Ethereum is a blockchain, that can be characterized as a "transactional singleton machine with shared-state" \cite{wood_ethereum_2024}. By using a consensus protocol, a decentralized set of nodes agrees on a globally shared state. This state contains two types of accounts: \emph{externally owned accounts} (EOA) and \emph{contract accounts} (also referred to as smart contracts). Each account is identified by a 20 byte address. The shared state is modified by executing \emph{transactions} \cite{tikhomirov_ethereum_2018}.
 
 \section{World State}
 
-Similar to \cite{wood_ethereum_2014}, we will refer to the shared state as "world state". This state maps addresses to account states, containing a \emph{nonce}, \emph{balance}, \emph{storage} and \emph{code}\footnote{Technically, the account state only contains hashes that identify the storage and code. This distinction is not relevant in this paper.}. They store following data \cite{wood_ethereum_2014}:
+Similar to \cite{wood_ethereum_2024}, we will refer to the shared state as \emph{world state}. The world state maps addresses to account states, containing a \emph{nonce}, \emph{balance}, \emph{storage} and \emph{code}\footnote{Technically, the account state only contains hashes that identify the storage and code, not the actual storage and code. This distinction is not relevant in this paper.}. They store following data \cite{wood_ethereum_2024}:
 
 \begin{itemize}
     \item \emph{nonce}: For EOAs, this is the number of transactions submitted by this account. For contract accounts, this is the number of contracts created by this account.
@@ -248,15 +244,48 @@ Similar to \cite{wood_ethereum_2014}, we will refer to the shared state as "worl
     \item \emph{code}: For contract accounts, the code is a sequence of EVM instructions.
 \end{itemize}
 
-We denote the world state as $\sigma$, the account state of an address $a$ as $\sigma(a)$ and the nonce, balance, storage and code of as $\sigma(a)_n$, $\sigma(a)_b$, $\sigma(a)_s$ and $\sigma(a)_c$ respectively.
+We denote the world state as $\sigma$, the account state of an address $a$ as $\sigma(a)$ and the nonce, balance, storage and code as $\sigma(a)_n$, $\sigma(a)_b$, $\sigma(a)_s$ and $\sigma(a)_c$ respectively.
+
+\section{EVM}
+
+The Ethereum Virtual Machine (EVM) is used to execute code in Ethereum. It can execute a set of instructions, that can access and modify the world state. The EVM is Turing-complete, except that it is executed with a limited amount of \emph{gas} and each instruction costs some gas \cite{wood_ethereum_2024}. When it runs out of gas, the execution will halt \cite[p.14]{wood_ethereum_2024}. For instance, this prevents execution of infinite loops, as it would use infinitely much gas and thus exceed the gas limit.
+
+Most EVM instructions are formally defined in \cite[p.30-38]{wood_ethereum_2024}. However, the Yellowpaper currently does not include the changes from the Cancun upgrade \cite{noauthor_history_2024}, therefore we will also refer to the informal description available on \href{https://www.evm.codes/}{evm.codes} \cite{noauthor_evm_2024}.
 
 \section{Transactions}
+
+A transaction can modify the world state by transferring Ether and executing EVM code. It must be signed by the owner of an EOA and contains following data relevant to our work:
+
+\begin{itemize}
+    \item \emph{sender}: The address of the transaction sender\footnote{The sender is only implicitly given through the signature and the transaction hash \cite[p.25-27]{wood_ethereum_2024}. We are only interested in transactions that are included in the blockchain, thus the signature must be valid and the transaction's sender can always be computed.}.
+    \item \emph{recipient}: The destination address.
+    \item \emph{value}: The value of Wei that should be transferred from the sender to the recipient.
+    \item \emph{gasLimit}: The maximum number of gas, that can be used for the execution.
+\end{itemize}
+
+If the recipient address is empty, the transaction will create a new contract account. These transactions also include an \emph{init} field, that contains the code to initialize the new contract account.
+
+When the recipient address is given, the value will be transferred to the recipient and, if the recipient is a contract account, also execute the recipient's code. The transaction can specify a \emph{data} field to pass input data to the code execution \cite[p.4-5]{wood_ethereum_2024}.
+
+% TODO: move \cite to pre/post period.
+
+For every transaction the sender must pay a \emph{transaction fee}. This is composed of a \emph{base fee} and a \emph{priority fee}. Every transaction must pay the base fee. The amount of Wei will be reduced from the sender and not given to any other account. For the priority fee, the transaction can specify if, and how much they are willing to pay. This fee will be taken from the sender and given to the block validator, explained in the next section \cite[p.8]{wood_ethereum_2024}.
+
+We denote a transaction as $T$, sometimes adding a subscript $T_A$ to differentiate from another transaction $T_B$.
+
+% TODO: rename block producer to block validator
+
+\section{Blocks}
+
+The Ethereum blockchain consists of a sequence of blocks\todo{Mention Gasper / other consensus mechanism?}, where each block builds upon the state of the previous block. A block consists of a block header and a sequence of transactions.
+
+% TODO: validator
+
+\section{Transaction submission}
 
 \section{Archive node}
 
 \section{RPC}
-
-\section{EVM}
 
 
 \chapter{TOD and Frontrunning definitions}
@@ -305,7 +334,7 @@ A TOD candidate is not necessarily TOD, for instance consider the case that $T_B
 The EVM instructions in table \ref{tab:state_reading_instructions} can access the world state. For most the reason of the access is clear, for instance \verb|BALANCE| needs to access the balance of the target address.
 \todo{Write that I got this from the wood paper.}
 
-Less obvious is the nonce access of several instructions, which is because the EVM uses the nonce (among other things) to check if an account already exists. For CALL, CALLCODE and SELFDESTRUCT, this is used to calculate the gas costs. For CREATE and CREATE2, this is used to prevent creating an account at an already active address. \cite{wood_ethereum_2014}
+Less obvious is the nonce access of several instructions, which is because the EVM uses the nonce (among other things) to check if an account already exists. For CALL, CALLCODE and SELFDESTRUCT, this is used to calculate the gas costs. For CREATE and CREATE2, this is used to prevent creating an account at an already active address. \cite{wood_ethereum_2024}
 
 \begin{table}[h]
     \begin{center}

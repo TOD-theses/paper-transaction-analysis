@@ -9,3 +9,9 @@
 {"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qmaster dipl.\\E$"}
 {"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\Qmaster dipl.\\E$"}
 {"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\Qnaustrian english\\E$"}
+{"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qsender: The address of the transaction sender recipient: The destination address.\\E$"}
+{"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qnonce: The nonce of the sender's account.\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\QgasLimit: The maximum number of gas, that can be used for the execution.\\E$"}
+{"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qvalue: gasLimit: The maximum number of gas, that can be used for the execution.\\E$"}
+{"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qvalue: The value of Wei that should be transferred.\\E$"}
+{"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qvalue: The value of Wei that should be transferred from the sender to the recipient.\\E$"}
