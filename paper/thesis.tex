@@ -289,9 +289,13 @@ Traditionally, the signed transaction is broadcasted to the network of nodes, wh
 
 A different approach, the Proposer-Builder Separation (PBS) has become more popularity recently: Here, we separate the task of collecting transactions and building blocks with them from the task of proposing them as a validator \cite{heimbach_ethereums_2023}. A user submits their signed transaction or transaction bundle to a block builder. The block builder has a private mempool and uses it to create profitable blocks. Finally, the validator picks one of the created blocks and adds it to the blockchain.
 
-\section{Archive node}
+\section{Nodes}
+
+A node consists of an \emph{execution client} and a \emph{consensus client}. The execution client keeps track of the world state and the mempool and executes transactions. The consensus client takes part in the consensus protocol. For this work, we will use an \emph{archive node}, which is a node that allows to reproduce the state and transactions at any block \cite{noauthor_nodes_2024}.
 
 \section{RPC}
+
+Execution clients implement the Ethereum JSON-RPC specification \cite{noauthor_ethereum_2024}. It provides an API to access the execution client, for instance to inspect the current block number with \verb|eth_blockNumber| or to execute a transaction without committing the state via \verb|eth_call|. In addition to the standardized RPC methods, we will also make use of methods in the debug namespace, such as \verb|debug_traceBlockByNumber|. While this namespace is not standardized, several execution clients implement these additional methods \cite{noauthor_debug_2024}\cite{noauthor_rpc_2024}\cite{noauthor_reth_2024}.
 
 
 \chapter{TOD and Frontrunning definitions}
