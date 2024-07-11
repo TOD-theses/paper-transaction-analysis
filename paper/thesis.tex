@@ -27,9 +27,11 @@
 % custom packages
 \usepackage{threeparttable}
 \usepackage{makecell}
+\usepackage{amsthm}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta}
 
+\newtheorem{theorem}{Theorem}[section]
 
 % Define convenience functions to use the author name and the thesis title in the PDF document properties.
 \newcommand{\authorname}{Othmar Lechner} % The author name without titles.
@@ -337,7 +339,7 @@ We will refer to a transaction pair $(T_A, T_B)$, where $T_A$ was executed befor
 
 A TOD candidate is not necessarily TOD, for instance consider the case that $T_B$ only reads the value that $T_A$ wrote but never uses it for any computation. This would be a TOD candidate, as they have a collision, however the result of executing $T_B$ is not impacted by this collision.
 
-\todo{Write somewhere that being a TOD candidate is necessary for TOD.}
+Conversely, if $(T_A, T_B)$ is transaction order dependent, then $(T_A, T_B)$ is also a TOD candidate.
 
 \subsection{State accessing instructions}
 
@@ -367,7 +369,7 @@ Less obvious is the nonce access of several instructions, which is because the E
             CREATE2      &            & \checkmark & \checkmark & \checkmark \\ \hline
             SELFDESTRUCT &            & \checkmark & \checkmark & \checkmark \\ \hline
         \end{tabular}
-        \caption{Instructions that access state. A checkmark indicates, that the execution of this instruction can depend on this state type.}
+        \caption[State accessing instructions]{Instructions that access state. A checkmark indicates, that the execution of this instruction can depend on this state type.}
         \label{tab:state_reading_instructions}
     \end{center}
 \end{table}
@@ -388,10 +390,26 @@ In table \ref{tab:state_writing_instructions} we see instructions that can modif
             CREATE2      &            & \checkmark & \checkmark & \checkmark \\ \hline
             SELFDESTRUCT & \checkmark & \checkmark & \checkmark & \checkmark \\ \hline
         \end{tabular}
-        \caption{Instructions that modify state. A checkmark indicates, that the execution of this instruction can modify this state type.}
+        \caption[State modifying instructions]{Instructions that modify state. A checkmark indicates, that the execution of this instruction can modify this state type.}
         \label{tab:state_writing_instructions}
     \end{center}
 \end{table}
+
+\subsection{Everything is TOD}
+
+Note, that our definition of TOD results is very lax. In particular, whenever a transaction uses a non-zero state value, it is likely TOD with the transaction that set this state value.
+
+\begin{theorem}
+    For every transaction $T_B$ after the London upgrade\footnote{We reference the London upgrade here, as this introduced the base fee for transactions.}, there exists a transaction $T_A$ such that $(T_A, T_B)$ is TOD.
+\end{theorem}
+
+\begin{proof}
+    Consider an arbitrary transaction $T_B$ with the sender being some address $a$. As the sender must pay a base fee \cite[p.8]{wood_ethereum_2024} and every transaction incurs a gas cost \cite[p.9]{wood_ethereum_2024}, the sender must pay some Wei as a transaction fee. Therefore, we must have $\sigma(a)_b > fee$ for some transaction fee $fee$. This requires, that another transaction $T_A$ increased the balance of $a$ to be higher than $fee$. Without $T_A$, $T_B$ would not be a valid transaction as $a$ would not have enough Wei to cover the transaction fee.
+\end{proof}
+
+Similar arguments can be made about transactions that execute some code (a previous transaction must have created the contract with this code), or transactions that access some non-zero storage slots (a previous transaction must have set this storage slot).
+
+Given this property, it is clear that TOD alone is not a useful vulnerability indicator. In the following, we provide some more restrictive definitions, which all are subsets of the TOD definition.
 
 \section{todo}
 
@@ -472,13 +490,14 @@ Many of the TOD candidates we gain in the previous section are not relevant for 
             \hline
             \thead{Filter name}      & \thead{Short description}                                  \\ \hline
             Indirect dependency      & \makecell[l]{$T_A$ could indirectly influence $T_B$.       \\For instance, if candidates $(T_A, T_X)$ and $(T_X, T_B)$ exist.} \\ \hline
+            Block windows            & The blocks of $T_A$ and $T_B$ are at most n blocks apart   \\ \hline
             Block producers          & The state overlap is only the balance of a block producer. \\ \hline
             EOA nonce                & The state overlap is only the nonce of an EOA.             \\ \hline
             Same sender              & $T_A$ is from the same sender as $T_B$.                    \\ \hline
             Recipient Ether transfer & $T_B$ is an Ether transfer without code execution.         \\ \hline
             % Maybe: what else?
         \end{tabular}
-        \caption{TOD candidate filters.}
+        \caption[TOD candidate filters]{TOD candidate filters.}
         \label{tab:tod_candidate_filters}
     \end{center}
 \end{table}
@@ -486,6 +505,10 @@ Many of the TOD candidates we gain in the previous section are not relevant for 
 We filter a TOD candidate $(T_A, T_B)$ if any of the filters from table \ref{tab:tod_candidate_filters} applies. The filters are explained in the following section.
 
 \subsection{Filters}
+
+\subsubsection{Block windows}
+
+If the
 
 \subsubsection{Block producers}
 
