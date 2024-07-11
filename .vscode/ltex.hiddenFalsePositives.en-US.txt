@@ -15,3 +15,5 @@
 {"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qvalue: gasLimit: The maximum number of gas, that can be used for the execution.\\E$"}
 {"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qvalue: The value of Wei that should be transferred.\\E$"}
 {"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qvalue: The value of Wei that should be transferred from the sender to the recipient.\\E$"}
+{"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qsender: The address of the transaction sender.\\E$"}
+{"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qrecipient: The destination address.\\E$"}

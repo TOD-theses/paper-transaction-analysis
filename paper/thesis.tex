@@ -277,11 +277,17 @@ We denote a transaction as $T$, sometimes adding a subscript $T_A$ to differenti
 
 \section{Blocks}
 
-The Ethereum blockchain consists of a sequence of blocks\todo{Mention Gasper / other consensus mechanism?}, where each block builds upon the state of the previous block. A block consists of a block header and a sequence of transactions.
+The Ethereum blockchain consists of a sequence of blocks, where each block builds upon the state of the previous block. To achieve consensus about the canonical sequence of blocks in a decentralized network of nodes, Ethereum currently uses a consensus protocol. In this protocol, validators build and propose blocks to be added to the blockchain \cite{noauthor_gasper_2024}. It is the choice of the validator, which transactions to include in a block, however they are incentivized to include transactions that pay high transaction fees, as they receive the fee \cite[p.8]{wood_ethereum_2024}.
 
-% TODO: validator
+Each block consists of a block header and a sequence of transactions. We denote the nth block of the blockchain as $B_n$ and the sequence of transactions it includes as $T(B_n) = (T_1, T_2, \dots, T_m)$.
 
 \section{Transaction submission}
+
+This section discusses, how a signed transaction by an EOA ends up being included in the blockchain.
+
+Traditionally, the signed transaction is broadcasted to the network of nodes, which temporarily store them in a \emph{mempool}, a collection of pending transactions. The creator of the next block then picks transactions from the mempool and includes them in the next block \cite{eskandari_sok_2020}. In this submission method, the pending transactions in the mempool are publicly known to the nodes in the network, even before being included in the blockchain. This time window will be important for our discussion on frontrunning, as it gives nodes time to react on a transaction before it is executed on the blockchain.
+
+A different approach, the Proposer-Builder Separation (PBS) has become more popularity recently: Here, we separate the task of collecting transactions and building blocks with them from the task of proposing them as a validator \cite{heimbach_ethereums_2023}. A user submits their signed transaction or transaction bundle to a block builder. The block builder has a private mempool and uses it to create profitable blocks. Finally, the validator picks one of the created blocks and adds it to the blockchain.
 
 \section{Archive node}
 
