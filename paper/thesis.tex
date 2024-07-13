@@ -440,7 +440,7 @@ To address the issues above, we will provide a more precise definition for TOD.
 
 Consider following sequence of transactions, with $\sigma$ being the world state right before $T_A$ was executed on the blockchain:
 
-$$\sigma \xrightarrow{T_A} \sigma_A \xrightarrow{T_{X_1}} \dots \xrightarrow{T_{X_n}} \sigma_{X_n} \xrightarrow{T_B} \sigma_B$$
+$$\sigma \xrightarrow{T_A} \sigma_A \xrightarrow{T_{X_1}} \dots \xrightarrow{T_{X_n}} \sigma_{X_n} \xrightarrow{T_B} \sigma_B$$\todo{Should we restate it, to compare state diffs rather than states?}
 
 Let $\Delta_A\sigma$ and $\Delta_B\sigma$ be the corresponding state changes from executing $T_A$ and $T_B$, and let all transactions be executed in the block environment of their block.
 
@@ -451,6 +451,58 @@ $$(\sigma_{X_n} - \Delta_A\sigma) \xrightarrow{T_B} \sigma_B\prime\text{ and }\s
 Intuitively, if we take the world state exactly before $T_B$ was executed, namely $\sigma_{X_n}$. We then compare if we get a different result when executing $T_B$ directly on $\sigma_{X_n}$ and when removing the state changes by $T_A$ and execute $T_B$ on $\sigma_{X_n} - \Delta_A\sigma$. If we get a different result, we say that $(T_A, T_B)$ is TOD.
 
 Note, that we only define TOD for the case that $T_A$ impacts $T_B$, but not the other way round. We ignore the case that $T_B$ impacts $T_A$, as we focus on detecting frontrunning attacks, in which the attacker tries to execute a transaction prior to some transaction $T$ and impact the behaviour of $T$ with this. To define TOD in both directions, one may extend the definition with $(\sigma + \Delta_B\sigma\prime) \xrightarrow{T_A} \sigma_A\prime$ and $\sigma_A \neq \sigma_A\prime$, where $\Delta_B\sigma\prime$ is the state change corresponding to executing $T_B$ on $\sigma_{X_n} - \Delta_A\sigma$.
+
+\subsection{Definition strengths}
+
+\subsubsection{Performance}
+
+To check if two transactions $T_A$ and $T_B$ are TOD, we only need the state change $\Delta_A\sigma$ and the state $\sigma_{X_n}$. These are enough to execute the normal and reverse order. In total, we would only have two transaction executions, despite including the impact of arbitrary many intermediary transactions.
+
+If we want to check n transactions for TOD, we would need $n$ transaction executions to obtain the state changes and resulting states by each transaction. If we wanted to test all possible transaction pairs, we would additionally need $\frac{n^2 - n}{2}$ more executions to obtain the execution results of the reverse order, leading to a total of $\frac{n^2 + n}{2}$ transaction executions. Similar to \cite{torres_frontrunner_2021} and \cite{zhang_combatting_2023}, we can filter irrelevant transactions pairs to be faster.
+
+\subsubsection{Similarity to blockchain executions}
+
+With our definition, the results in the normal execution are equivalent to the results that happend on the blockchain. Also, the reversed order is closely related to the state from the blockchain, as we start with $\sigma_{X_n}$ and only modify the relevant parts for our analysis.
+
+This contrasts other implementations, where transactions are executed in different block environments than originally or are executed based on a different starting state. Both of these can alter the result in ways that are not related to the impact of $T_A$, which we want to analyze.
+
+\subsection{Definition weaknesses}
+
+The intuitive idea of our definition is, to compare $T_A \rightarrow T_{X_i} \rightarrow T_B$ with $T_{X_i} \rightarrow T_B$, i.e. reckoning what would have happened without $T_A$. However, the definition we provide does not perfectly match this concept. As explained below, these inconsistencies arise with certain interplays between $T_A$ and some intermediary transaction $T_X$, which are ignored by our definition. This may be desirable, as we want to focus solely on the effect of $T_A$ on $T_B$, however it may lead to unexpected results if one is not aware of this.
+
+\subsubsection{Undoing state changes of intermediary transactions}
+
+When we analyze a TOD for $(T_A, T_B)$, applying $\sigma_{X_n} - \Delta_A\sigma$ could lead to an unrealistic state if $T_A$ modifies the same state keys as some intermediary transaction $T_X$.
+
+For instance, consider the three transactions $T_A$, $T_X$ and $T_B$:
+
+\begin{enumerate}
+    \item $T_A$: sender $a$ transfers 5 Ether to address $b$.
+    \item $T_X$: sender $x$ transfers 5 Ether to address $b$.
+    \item $T_B$: sender $b$ transfers 5 Ether to address $y$.
+\end{enumerate}
+
+If we start with a state $\sigma$ where both $a$ and $x$ have 5 Ether and all other accounts have 0, then executing all three transactions would result in the state $\sigma(y)_b = 5 eth$. If we think about the case where $T_A$ would not be executed, i.e. the reverse order, we would get the same result.
+
+However, when we compute $(\sigma_{X_n} - \Delta_A\sigma)$ we would overwrite the balance of $b$ in $\sigma_{X_n}$ and set it to 0. Undoing the changes of $T_A$ inadvertently also undoes the changes by $T_X$. If we execute $T_B$ on the resulting state, it would fail.
+
+\subsubsection{Indirect dependencies}
+
+Similar to the previous example, we can also get an unrealistic state when there is a TOD between $T_A$ and some intermediary transaction $T_X$.
+
+Consider the same scenario as before, except that now $T_A$ sends the 5 Ether to $x$ and $x$ initially also has 0 Ether.
+
+In the normal scenario, $a$ would send $x$ 5 Ether ($T_A$), $x$ would forward 5 Ether to $b$ ($T_X$) and finally $b$ would forward these to $y$. If $T_A$ would not exist, then $T_X$ and $T_B$ would both fail because of insufficient funds.
+
+However, when we compute $(\sigma_{X_n} - \Delta_A\sigma)$ we would \emph{not} overwrite the balance of $b$ in $\sigma_{X_n}$, as $T_A$ did not modify this balance. Thus, $T_B$ would succeed.
+
+\begin{enumerate}
+    \item $T_A$: sender $a$ transfers 5 Ether to address $b$.
+    \item $T_X$: sender $x$ transfers 5 Ether to address $b$.
+    \item $T_B$: sender $b$ transfers 5 Ether to address $y$.
+\end{enumerate}
+
+When we analyze a TOD for $(T_A, T_B)$, applying $\sigma_{X_n} - \Delta_A\sigma$ could lead to an unrealistic state if $T_A$ modifies the same state keys as some intermediary transaction $T_X$.
 
 
 \section{TOD old}
