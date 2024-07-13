@@ -17,3 +17,4 @@
 {"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qvalue: The value of Wei that should be transferred from the sender to the recipient.\\E$"}
 {"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qsender: The address of the transaction sender.\\E$"}
 {"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qrecipient: The destination address.\\E$"}
+{"rule":"ALLOW_TO","sentence":"^\\QWhen we change the transaction orders to mimic attack-free scenarios, the relative orders between \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q (or \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q) and other transactions are also changed.\\E$"}

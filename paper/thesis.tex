@@ -227,6 +227,14 @@ Problems with this approach:
     \item replay is done with a different environment
 \end{enumerate}
 
+\section{Contributions}
+
+\begin{itemize}
+    \item Precise definition of transaction replaying in the context of TOD and analysis of previous works w.r.g.t. this definition.
+    \item Compilation of instructions that can cause TOD.
+    \item Methodology to mine potential TOD transaction pairs using only the RPC interface of an archive node, rather than directly accessing it.
+\end{itemize}
+
 \chapter{Background}
 
 This chapter gives background knowledge on Ethereum, that is helpful to follow the remaining paper.
@@ -291,6 +299,14 @@ Traditionally, the signed transaction is broadcasted to the network of nodes, wh
 
 A different approach, the Proposer-Builder Separation (PBS) has become more popularity recently: Here, we separate the task of collecting transactions and building blocks with them from the task of proposing them as a validator \cite{heimbach_ethereums_2023}. A user submits their signed transaction or transaction bundle to a block builder. The block builder has a private mempool and uses it to create profitable blocks. Finally, the validator picks one of the created blocks and adds it to the blockchain.
 
+\section{Transaction execution}
+
+In Ethereum, transaction execution is deterministic: If the transaction is executed in a specific block environment and world state, it will always produce the same result. The result is used to update the world state, which we model as a function $\Pi(T, B, \sigma) = \sigma\prime$, where $T$ is the transaction, $B$ is the block and $\sigma$ is the world state.
+
+In this paper, we are interested in the effects of the transaction order. If we reorder transactions across multiple blocks, they would execute in a different block environment than they did originally. The effects of block environments are already covered in several other vulnerability definitions\todo{Reference}. Thus, we will exclude the possibility of changing block environments and assume that transactions are always executed in their original block environment. As such, we can think of the transaction execution as $\Pi(T, \sigma) = \sigma\prime$.
+
+We denote a transaction execution as $\sigma \xrightarrow{T} \sigma\prime$ in the following. Furthermore, we denote the change between $\sigma$ and $\sigma\prime$ as $\Delta_T\sigma$.
+
 \section{Nodes}
 
 A node consists of an \emph{execution client} and a \emph{consensus client}. The execution client keeps track of the world state and the mempool and executes transactions. The consensus client takes part in the consensus protocol. For this work, we will use an \emph{archive node}, which is a node that allows to reproduce the state and transactions at any block \cite{noauthor_nodes_2024}.
@@ -299,26 +315,126 @@ A node consists of an \emph{execution client} and a \emph{consensus client}. The
 
 Execution clients implement the Ethereum JSON-RPC specification \cite{noauthor_ethereum_2024}. It provides an API to access the execution client, for instance to inspect the current block number with \verb|eth_blockNumber| or to execute a transaction without committing the state via \verb|eth_call|. In addition to the standardized RPC methods, we will also make use of methods in the debug namespace, such as \verb|debug_traceBlockByNumber|. While this namespace is not standardized, several execution clients implement these additional methods \cite{noauthor_debug_2024}\cite{noauthor_rpc_2024}\cite{noauthor_reth_2024}.
 
-
-\chapter{TOD and Frontrunning definitions}
-
-\section{Transaction execution}
-
-In Ethereum, transaction execution is deterministic: If the transaction is executed in a specific block environment and world state, it will always produce the same result. The result is used to update the world state, which we model as a function $\Pi(T, E, \sigma) = \sigma\prime$, where $T$ is the transaction, $E$ is the block environment and $\sigma$ is the world state.
-
-In this paper, we are interested in the effects of the transaction order. If we reorder transactions across multiple blocks, they would execute in a different block environment than they did originally. The effects of block environments are already covered in several other vulnerability definitions\todo{Reference}. Thus, we will exclude the possibility of changing block environments and assume that transactions are always executed in their original block environment. As such, we can think of the transaction execution as $\Pi(T, \sigma) = \sigma\prime$, also denoted as $\sigma \xrightarrow{T} \sigma\prime$ in the following.
-
 \todo{Notation for multiple transactions}
 
-\section{Transaction order dependence}
+\chapter{Transaction order dependency}
 
-We say, that a pair of transactions $(T_A, T_B)$ is transaction order dependent (TOD), if and only if:
+In this chapter we discuss our definition of transaction order dependency (TOD) and various properties that come with it. We first lay out the idea of TOD with a basic definition and then show several shortcomings of a simple definition and how this affected previous works. Based on these insights, we construct a more precise definition that we will use for our analysis.
+
+\section{Approaching TOD}
+
+Intuitively, a pair of transactions $(T_A, T_B)$ is transaction order dependent (TOD), if the original execution order leads to a different result than a reordered execution order. In formal terms, we write this as following:
 
 $$\sigma \xrightarrow{T_A, T_B} \sigma \prime$$
 $$\sigma \xrightarrow{T_B, T_A} \sigma \prime \prime$$
 $$\sigma \prime \neq \sigma \prime \prime$$
 
+So, starting from an initial state, when we execute first $T_A$ and then $T_B$ it will result in a different state, than when executing $T_B$ and afterwards $T_A$.
+
+We will refer to the execution order $T_A \rightarrow T_B$, the one that occurred on the blockchain, as the \emph{normal} execution order, and $T_B \rightarrow T_A$ as the \emph{reversed} execution order.
+
+\section{Relation to previous works}
+
+In \cite{torres_frontrunner_2021} the authors do not provide a formal definition of TOD. However, for displacement attacks, they include the following check to detect if two transactions fall into this category:
+
+\begin{quote}
+    [...] we run in a simulated environment first $T_A$ before $T_V$ and then $T_V$ before $T_A$. We report a finding if the number of executed EVM instructions is different across both runs for $T_A$ and $T_V$, as this means that $T_A$ and $T_V$ influence each other.
+\end{quote}
+
+Similar to our intuitive TOD definition, they execute $T_A$ and $T_V$ in different orders and check if it affects the result. In their case, they only check the number of executed instruction, instead of the resulting state. This would miss attacks where the same instructions were executed, but the operands for these instructions in the second transaction changed because of the first transaction.
+
+In \cite{zhang_combatting_2023}, they define an attack as a triple $A = \langle T_a, T_v, T_a^p\rangle$, where $T_a$ and $T_v$ are similar to our $T_A$ and $T_B$, and $T_a^p$ is an optional third transaction. With these they model the execution orders $T_a \rightarrow T_v \rightarrow T_a^p$ and $T_v \rightarrow T_a \rightarrow T_a^p$. They then use the results to check if the execution order impacts financial gains, which we will discuss in a later section\todo{Reference section}.
+
+First, we note that if these two execution orders result in different states, this is not because of the last transaction $T_a^p$, but because of a TOD between $T_a$ and $T_v$. If this was not the case, and $T_a \rightarrow T_v$ and $T_v \rightarrow T_a$ would result in the same state but executing $T_a^p$ afterwards would result in two different states, then $T_a^p$ would not be deterministic.
+
+Therefore, if the execution order results in different financial gains, then $T_a$ and $T_v$ must be TOD. Thus, transaction order dependency is a prerequisite for the attacks in \cite{zhang_combatting_2023}.
+
+\section{Imprecise definitions}
+
+Our intuitive definition of TOD, and the related definitions shown above, are not precise on the semantics of an ordering and reordering of transactions and their executions. These make it impossible to apply the same methodology without analyzing the source code related to the papers. We detect three issues, where the definition is not precise enough and was interpreted differently by the two papers.
+
+For the analysis of the tools by \cite{zhang_combatting_2023} and \cite{torres_frontrunner_2021}, we will use the current version of the source codes, \cite{noauthor_troublorerebus-redgiant_2024} and \cite{noauthor_christoftorresfrontrunner-jones_2024} respectively.
+
+\subsection{Intermediate transactions}
+
+To analyze the TOD $(T_A, T_B)$, we are interested in how $T_A$ affected $T_B$. For now, we did not specify how we handle transactions that occurred between $T_A$ and $T_B$.
+
+For instance, let us assume that there was one transaction $T_X$ in between $T_A$ and $T_B$: $\sigma \xrightarrow{T_A} \sigma_A \xrightarrow{T_X} \sigma_{AX} \xrightarrow{T_B} \sigma_{AXB}$. As such, the execution of $T_B$ could depend on both $T_A$ and $T_X$.
+
+For executing the normal order, we would have two possibilities:
+
+\begin{enumerate}
+    \item $\sigma \xrightarrow{T_A} \sigma_A \xrightarrow{T_B} \sigma_{AB}$, and thus having a normal execution that potentially diverges from the results on the blockchain (as $\sigma_{AB}$ may differ to $\sigma_{AXB}$).
+    \item $\sigma \xrightarrow{T_A} \sigma_A \xrightarrow{T_X} \sigma_{AX} \xrightarrow{T_B} \sigma_{AXB}$, the same execution as on the blockchain, including the effects of $T_X$.
+\end{enumerate}
+
+When executing the reverse order, we could make following choices:
+
+\begin{enumerate}
+    \item $\sigma \xrightarrow{T_B} \sigma_B \xrightarrow{T_A} \sigma_{BA}$, which ignores $T_X$ and thus may impact the execution of $T_B$.
+    \item $\sigma \xrightarrow{T_X} \sigma_X \xrightarrow{T_B} \sigma_{XB} \xrightarrow{T_A} \sigma_{XBA}$, which executes $T_X$  on $\sigma$ rather than $\sigma_A$, which was originally used for $T_X$.
+\end{enumerate}
+
 \todo{What about logs? These are not part of the world state, but should also be modelled.}
+
+All of these scenarios are possible, but none of them provides a clean solution to solely analyze the impact of $T_A$ on $T_B$, as we always could have some indirect impact from the (non-)execution of $T_X$.
+
+In \cite{zhang_combatting_2023}, this impact of the intermediary transactions is acknowledged and caused a few false positives:
+
+\begin{quote}
+    In blockchain history, there could be many other transactions between $T_a$, $T_v$, and $T_p^a$. When we change the transaction orders to mimic attack-free scenarios, the relative orders between $T_a$ (or $T_v$) and other transactions are also changed. Financial profits of the attack or victim could be affected by such relative orders. As a result, the financial profits in the attack-free scenario could be incorrectly calculated, and false-positively reported attacks may be induced, but our manual check shows that such cases are rare.
+\end{quote}
+
+Nonetheless, it is not clear, which of the above scenarios they applied for their analysis. \cite{torres_frontrunner_2021} does not mention this issue at all.
+
+\todo{Consider moving the technical aspects to an appendix.}
+
+\subsubsection{Analysis of \cite{zhang_combatting_2023}}
+
+
+As shown in their algorithm 1, they take as input all the executed transactions. They use these transactions and their results in the \verb|searchVictimGivenAttack| method, where \verb|ar| represents the attack transaction and result and \verb|vr| represents the victim transaction and result.
+
+For the normal execution order, they simply use \verb|ar| and \verb|vr| and pass them to their \verb|CheckOracle| method which then compares the resulting states. As they use the results obtained from executing all transactions, they also include the intermediary transactions for these results (similar to our $\sigma \xrightarrow{T_A} \sigma_A \xrightarrow{T_X} \sigma_{AX} \xrightarrow{T_B} \sigma_{AXB}$ case).
+
+For the reverse order ($T_a \rightarrow T_v$), they take the state before $T_a$, i.e. $\sigma$. Then they execute all transactions obtained from the \verb|SlicePrerequisites| method. And finally they execute $T_v$ and $T_a$.
+
+The \verb|SlicePrerequisites| method uses the \verb|hbGraph| built in \verb|StartSession|, which seems to be a graph where each transaction points to the previous transaction from the same EOA. From this graph, it takes all transactions between $T_a$ and $T_v$, that are from the same sender as $T_v$. This interpretation matches the test case "should slide prerequisites correctly" from the source code. As the paper does not mention these prerequisite transactions, we do not know why this subset of intermediary transactions was chosen.
+
+We can conclude, that for the reverse order, \cite{zhang_combatting_2023} executes all intermediary transactions for the normal order. However, for the reverse order, they only execute intermediary transactions that are also sent by the victim, but do not execute any other intermediary transactions.
+
+\subsubsection{Analysis of \cite{torres_frontrunner_2021}}
+
+In the file \verb|displacement.py|, they replay the normal execution order at the lines 154-155, and the reverse execution order at the lines 158-159 from line 151 to 159. As we can see here, they only execute $T_A$ and $T_V$ (in normal and reverse order), but do not execute any intermediate transactions.
+
+\subsection{Block environments}
+
+When we have a TOD between $T_A$ and $T_B$ it can be, that these are not part of the same block. As transactions can access some data from the block they are in, for instance the block number, the execution of a transaction can depend on the block environment. From our intuitive TOD definition, it is not clear which block environment(s) we use when replaying the transactions in normal and reverse order.
+
+Changing this environment could change the outcome of the transaction. In particular, if we do not use the same block environment as on the blockchain, we may get different results in the analysis than actually happened on the blockchain.
+
+\subsubsection{Analysis of \cite{zhang_combatting_2023}}
+
+The block environment used to execute all transactions is contained in \verb|ar.VmContext| and as such corresponds to the block environment of $T_a$. This means $T_a$ is executed in the same block environment as on the blockchain, while $T_v$ and the intermediary transactions may be executed in a different block environment.
+
+\subsubsection{Analysis of \cite{torres_frontrunner_2021}}
+
+In the file \verb|displacement.py| line 151, we see that the emulator uses the same block environment for both transactions. Therefore, at least one of them will be executed in a different block environment than on the blockchain.
+
+\subsection{Initial state $\sigma$}
+
+While our preliminary TOD definition specifies that we start with the same $\sigma$ in both execution orders, it is up to interpretation which world state $\sigma$ is.
+
+\subsubsection{Analysis of \cite{zhang_combatting_2023}}
+
+The initial state used to execute the first transaction is \verb|ar.State|, which corresponds to the state directly before executing $T_a$. This includes all previous transactions of the same block.
+
+\subsubsection{Analysis of \cite{torres_frontrunner_2021}}
+
+The emulator is initialized with the block \verb|front_runner["blockNumber"]-1|. They do not modify the emulator before executing the transactions, thus $\sigma$ must directly be derived from the block and is the state after executing a whole block. Also, $\sigma$ likely does not include the state changes by $T_A$ and $T_V$, in which case executing $T_A$ on top of $\sigma$ would not make sense. As $\sigma$ does not include the changes by $T_A$ it also does not include the changes of any other transaction in this block.
+
+Similar to the block environment, this could lead to differences in the emulation and the results from the blockchain, if $T_A$ or $T_V$ is impacted by a previous transaction in the same block.
+
+\section{TOD old}
 
 \subsection{Collision}
 
@@ -409,14 +525,13 @@ Note, that our definition of TOD results is very lax. In particular, whenever a 
 
 Similar arguments can be made about transactions that execute some code (a previous transaction must have created the contract with this code), or transactions that access some non-zero storage slots (a previous transaction must have set this storage slot).
 
-Given this property, it is clear that TOD alone is not a useful vulnerability indicator. In the following, we provide some more restrictive definitions, which all are subsets of the TOD definition.
+Given this property, it is clear that TOD alone is not a useful attack indicator. In the following, we provide some more restrictive definitions, which all are subsets of the TOD definition.
 
-\section{todo}
+\chapter{Frontrunning definitions}
 
 \todo{Is it important to differentiate between sandwich attacks and displacement attacks?}
 \todo{Should we go from first source to last sink? e.g. in a swap call, we will have multiple LOG events at different levels.}
 
-\section{TOD sources}
 
 For $T_A \rightarrow T_B$:
 
