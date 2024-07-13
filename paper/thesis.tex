@@ -254,7 +254,7 @@ Similar to \cite{wood_ethereum_2024}, we will refer to the shared state as \emph
     \item \emph{code}: For contract accounts, the code is a sequence of EVM instructions.
 \end{itemize}
 
-We denote the world state as $\sigma$, the account state of an address $a$ as $\sigma(a)$ and the nonce, balance, storage and code as $\sigma(a)_n$, $\sigma(a)_b$, $\sigma(a)_s$ and $\sigma(a)_c$ respectively.
+We denote the world state as $\sigma$, the account state of an address $a$ as $\sigma(a)$ and the nonce, balance, storage and code as $\sigma(a)_n$, $\sigma(a)_b$, $\sigma(a)_s$ and $\sigma(a)_c$ respectively. For the value at a storage slot $k$ we write $\sigma(a)_s[k]$.
 
 \section{EVM}
 
@@ -433,6 +433,25 @@ The initial state used to execute the first transaction is \verb|ar.State|, whic
 The emulator is initialized with the block \verb|front_runner["blockNumber"]-1|. They do not modify the emulator before executing the transactions, thus $\sigma$ must directly be derived from the block and is the state after executing a whole block. Also, $\sigma$ likely does not include the state changes by $T_A$ and $T_V$, in which case executing $T_A$ on top of $\sigma$ would not make sense. As $\sigma$ does not include the changes by $T_A$ it also does not include the changes of any other transaction in this block.
 
 Similar to the block environment, this could lead to differences in the emulation and the results from the blockchain, if $T_A$ or $T_V$ is impacted by a previous transaction in the same block.
+
+\section{TOD definition}
+
+To address the issues above, we will provide a more precise definition for TOD.
+
+Consider following sequence of transactions, with $\sigma$ being the world state right before $T_A$ was executed on the blockchain:
+
+$$\sigma \xrightarrow{T_A} \sigma_A \xrightarrow{T_{X_1}} \dots \xrightarrow{T_{X_n}} \sigma_{X_n} \xrightarrow{T_B} \sigma_B$$
+
+Let $\Delta_A\sigma$ and $\Delta_B\sigma$ be the corresponding state changes from executing $T_A$ and $T_B$, and let all transactions be executed in the block environment of their block.
+
+We say, that $(T_A, T_B)$ is TOD if and only if:
+
+$$(\sigma_{X_n} - \Delta_A\sigma) \xrightarrow{T_B} \sigma_B\prime\text{ and }\sigma_B \neq \sigma_B\prime$$
+
+Intuitively, if we take the world state exactly before $T_B$ was executed, namely $\sigma_{X_n}$. We then compare if we get a different result when executing $T_B$ directly on $\sigma_{X_n}$ and when removing the state changes by $T_A$ and execute $T_B$ on $\sigma_{X_n} - \Delta_A\sigma$. If we get a different result, we say that $(T_A, T_B)$ is TOD.
+
+Note, that we only define TOD for the case that $T_A$ impacts $T_B$, but not the other way round. We ignore the case that $T_B$ impacts $T_A$, as we focus on detecting frontrunning attacks, in which the attacker tries to execute a transaction prior to some transaction $T$ and impact the behaviour of $T$ with this. To define TOD in both directions, one may extend the definition with $(\sigma + \Delta_B\sigma\prime) \xrightarrow{T_A} \sigma_A\prime$ and $\sigma_A \neq \sigma_A\prime$, where $\Delta_B\sigma\prime$ is the state change corresponding to executing $T_B$ on $\sigma_{X_n} - \Delta_A\sigma$.
+
 
 \section{TOD old}
 
