@@ -7,7 +7,7 @@
 %% vutinfth.dtx  (with options: `class')
 %% 
 %% This is a generated file.
-%% Copyright (C) 2014-2023 by Thomas Auzinger <thomas@auzinger.name>
+%% Copyright (C) 2014-2024 by Thomas Auzinger <thomas@auzinger.name>
 %% 
 %% This work may be distributed and/or modified under the
 %% conditions of the LaTeX Project Public License, either version 1.3
@@ -26,10 +26,10 @@
 %% This work also consists of the file intro.tex.
 %% 
 %% vutinfth.dtx
-%% Copyright (C) 2014-2023 by Thomas Auzinger <thomas@auzinger.name>
+%% Copyright (C) 2014-2024 by Thomas Auzinger <thomas@auzinger.name>
 \NeedsTeXFormat{LaTeX2e}[1999/12/01]
 \ProvidesClass{vutinfth}
-    [2023/06/04 v1.12 TU Wien Informatics thesis template]
+    [2024/05/29 v1.13 TU Wien Informatics thesis template]
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -408,6 +408,27 @@
     oder dem Sinn nach entnommen sind, auf jeden Fall unter Angabe
     der Quelle als Entlehnung kenntlich gemacht habe.}]{Statement}%
 \CreatePolylingual[
+  english={I further declare that I have used generative AI tools only as an aid,
+  and that my own intellectual and creative efforts predominate in this
+  work. In the appendix ``Overview of Generative AI Tools Used'' I have
+  listed all generative AI tools that were used in the creation of this
+  work, and indicated where in the work they were used. If whole passages
+  of text were used without substantial changes, I have indicated the
+  input (prompts) I formulated and the IT application used with its
+  product name and version number/date.},
+  naustrian={Ich erkl\"are weiters, dass ich mich generativer KI-Tools lediglich als
+  Hilfsmittel bedient habe und in der vorliegenden Arbeit mein
+  gestalterischer Einfluss \"uberwiegt. Im Anhang \glqq\"Ubersicht verwendeter
+  Hilfsmittel\grqq\ habe ich alle generativen KI-Tools gelistet, die verwendet
+  wurden, und angegeben, wo und wie sie verwendet wurden.  F\"ur
+  Textpassagen, die ohne substantielle \"Anderungen \"ubernommen wurden, habe
+  ich jeweils die von mir formulierten Eingaben (Prompts) und die
+  verwendete IT-Anwendung mit ihrem Produktnamen und Versionsnummer/Datum
+  angegeben.}]{AIStatement}%
+\CreatePolylingual[
+  english=Overview of Generative AI Tools Used,
+  naustrian=Übersicht verwendeter Hilfsmittel]{AIToolsChapter}%
+\CreatePolylingual[
   english=Bachelor of Science,
   naustrian=Bachelor of Science]{Bdeg}%
 \CreatePolylingual[
@@ -729,6 +750,7 @@
       \vutinfth@person@author@fullname\par
       \vspace{1.2cm}%
       {\normalfont\vutinfth@polylingual@Statement}\par
+      {\normalfont\vutinfth@polylingual@AIStatement}\par
       \vspace{1.2cm}%
       \SignatureFields[y]{\vutinfth@person@author@name}{}%
   \end{SFFont}%
@@ -788,6 +810,30 @@
 \newenvironment{kurzfassung*}{%
   \selectlanguage{naustrian}%
   \chapter*{Kurzfassung}%
+}{%
+  \cleardoublepage
+}%
+\newenvironment{aitools}{%
+  \selectlanguage{english}%
+  \chapter[\vutinfth@AIToolsChapter@english]{\vutinfth@polylingual@AIToolsChapter}%
+}{%
+  \cleardoublepage
+}%
+\newenvironment{aitools*}{%
+  \selectlanguage{english}%
+  \chapter*{\vutinfth@polylingual@AIToolsChapter}%
+}{%
+  \cleardoublepage
+}%
+\newenvironment{kitools}{%
+  \selectlanguage{naustrian}%
+  \chapter[\vutinfth@AIToolsChapter@naustrian]{\vutinfth@polylingual@AIToolsChapter}%
+}{%
+  \cleardoublepage
+}%
+\newenvironment{kitools*}{%
+  \selectlanguage{naustrian}%
+  \chapter*{\vutinfth@polylingual@AIToolsChapter}%
 }{%
   \cleardoublepage
 }%

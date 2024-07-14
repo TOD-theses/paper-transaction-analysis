@@ -18,3 +18,9 @@
 {"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qsender: The address of the transaction sender.\\E$"}
 {"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qrecipient: The destination address.\\E$"}
 {"rule":"ALLOW_TO","sentence":"^\\QWhen we change the transaction orders to mimic attack-free scenarios, the relative orders between \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q (or \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q) and other transactions are also changed.\\E$"}
+{"rule":"SENTENCE_WHITESPACE","sentence":"^\\QProf.in Dipl.-Ing.in Mag.a rer.soc.oec.\\E$"}
+{"rule":"SENTENCE_WHITESPACE","sentence":"^\\QUniv.Prof. Dr. Gernot Salzer  male\\E$"}
+{"rule":"WHITESPACE_RULE","sentence":"^\\QUniv.Prof. Dr. Gernot Salzer  male\\E$"}
+{"rule":"WHITESPACE_RULE","sentence":"^\\QMonika di Angelo  female\\E$"}
+{"rule":"WHITESPACE_RULE","sentence":"^\\Qmale Ass.\\E$"}
+{"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qmale Ass.\\E$"}
