@@ -554,36 +554,39 @@ However, when we compute $(\sigma_{X_n} - \Delta_{T_A})$ we would \emph{not} ove
 
 When we analyze a TOD for $(T_A, T_B)$, applying $\sigma_{X_n} - \Delta_{T_A}$ could lead to an unrealistic state if $T_A$ modifies the same state keys as some intermediary transaction $T_X$.
 
+\section{State collisions}
 
-\section{TOD old}
-
-\subsection{Collision}
-
-Transactions are influenced by the world state and can also modify it. When a transaction $T$ accesses the world state, we denote it as $R_T$, when it modifies the world state, we denote it as $W_T$.
-
-$$R_T = \{ balance(addr), code(addr), nonce(addr), storage(addr, key) \}$$
-$$W_T = \{ balance(addr), code(addr), nonce(addr), storage(addr, key) \}$$
+Transactions are influenced by the world state and can also modify it. We denote the state accesses by a transaction $T$ as $R_T$, and the state modifications as $W_T$. Both are defined as a tuple $(balances, codes, nonces, storage\ slots)$, where $balances$, $codes$ and $nonces$ are sets of addresses and $storage\ slots$ is a set of $(address, key)$ pairs.
 
 We define the state collisions of two transactions as:
 
-$$collisions(T_A, T_B) = (W_{T_A} \cap R_{T_B}) \cup (W_{T_A} \cap W_{T_B})$$ \todo{Do I want read-write as well? Would be TOD, but not an attack.}
+$$collisions(T_A, T_B) = (W_{T_A} \cap R_{T_B}) \cup (W_{T_A} \cap W_{T_B})$$
 
-With $W_{T_A} \cap R_{T_B}$ we include write-read collisions, where $T_A$ modifies some state and $T_B$ accesses the same state. Therefore, the execution of $T_B$ depends on the value that $T_A$ wrote, which is a potential TOD. With $W_{T_A} \cap W_{T_B}$ we include write-write collisions, where both transactions write to the same state location. In this case, the value of this state location depends on which transaction was executed last, and thus this also is a potential TOD.
+With $W_{T_A} \cap R_{T_B}$ we include write-read collisions, where $T_A$ modifies some state and $T_B$ accesses the same state. Therefore, the execution of $T_B$ uses the value that $T_A$ wrote, which is a potential TOD. With $W_{T_A} \cap W_{T_B}$ we include write-write collisions, where both transactions write to the same state location, for instance to the same storage slot. In this case, the resulting value of this state location depends on which transaction was executed last, and thus this can also cause a TOD.
 
-\subsection{TOD candidate}
+We do not include $R_{T_A} \cap W_{T_B}$, as it cannot be an attack if the first transaction did not modify the values accessed or written by the second transaction, and therefore is not of interest for this paper.
+
+\section{TOD candidates}
 
 We will refer to a transaction pair $(T_A, T_B)$, where $T_A$ was executed before $T_B$ and $collisions(T_A, T_B) \neq \emptyset$ as a TOD candidate.
 
 A TOD candidate is not necessarily TOD, for instance consider the case that $T_B$ only reads the value that $T_A$ wrote but never uses it for any computation. This would be a TOD candidate, as they have a collision, however the result of executing $T_B$ is not impacted by this collision.
 
-Conversely, if $(T_A, T_B)$ is transaction order dependent, then $(T_A, T_B)$ is also a TOD candidate.
+Conversely, if $(T_A, T_B)$ is transaction order dependent, then $(T_A, T_B)$ must also a TOD candidate, as we only can have a TOD if there is some state collision.
 
-\subsection{State accessing instructions}
+Therefore, the set of all TOD transaction pairs is a subset of all TOD candidates.
 
-The EVM instructions in table \ref{tab:state_reading_instructions} can access the world state. For most the reason of the access is clear, for instance \verb|BALANCE| needs to access the balance of the target address.
-\todo{Write that I got this from the wood paper.}
+\section{Causes of state collisions}
 
-Less obvious is the nonce access of several instructions, which is because the EVM uses the nonce (among other things) to check if an account already exists. For CALL, CALLCODE and SELFDESTRUCT, this is used to calculate the gas costs. For CREATE and CREATE2, this is used to prevent creating an account at an already active address. \cite{wood_ethereum_2024}
+This section discusses, what can cause two transactions $T_A$ and $T_B$ to have state collisions. To do so, we show the ways a transaction can access and modify the world state.
+
+\subsection{Causes with code execution}
+
+When the recipient of a transaction is a contract account, it will execute the recipient's code. The code execution can access and modify the state through several instructions. By inspecting the EVM instruction definitions \cite[p.30-38]{wood_ethereum_2024}\cite{noauthor_evm_2024}, we compiled a list of instructions that can access and modify the world state.
+
+In table \ref{tab:state_reading_instructions} we see the instructions, that can access the world state. For most, the reason of the access is clear, for instance \verb|BALANCE| needs to access the balance of the target address. Less obvious is the nonce access of several instructions, which is because the EVM uses the nonce (among other things) to check if an account already exists. For CALL, CALLCODE and SELFDESTRUCT, this is used to calculate the gas costs. For CREATE and CREATE2, this is used to prevent creating an account at an already active address. \cite{wood_ethereum_2024}
+
+In table \ref{tab:state_writing_instructions} we see instructions that can modify the world state.
 
 \begin{table}[h]
     \begin{center}
@@ -611,10 +614,6 @@ Less obvious is the nonce access of several instructions, which is because the E
     \end{center}
 \end{table}
 
-\subsection{State modifying instructions}
-
-In table \ref{tab:state_writing_instructions} we see instructions that can modify the world state.
-
 \begin{table}[h]
     \begin{center}
         \begin{tabular}{ | l | c  | c | c | c | }
@@ -632,55 +631,74 @@ In table \ref{tab:state_writing_instructions} we see instructions that can modif
     \end{center}
 \end{table}
 
-\subsection{Everything is TOD}
+\subsection{Causes without code execution}
 
-Note, that our definition of TOD results is very lax. In particular, whenever a transaction uses a non-zero state value, it is likely TOD with the transaction that set this state value.
+Some state accesses and modifications are inherent to transaction execution. To pay for the transaction fees, the balance of the sender is accessed and modified. When a transaction transfers some Wei from the sender to the recipient, it als modifies the recipient's balance. To check if the recipient is a contract account, the transaction also needs to access the code of the recipient. And finally, it also verfies the sender's nonce and increments it by one \cite[p.9]{wood_ethereum_2024}.
+
+\subsection{Relevant collisions for attacks}
+
+The previous sections list possible ways to access and modify the world state. Previous studies have focused on storage and balance collisions, however they did not discuss if or why code and nonce collisions are not important\todo{Reference some of them}. Here, we try to argue, why only storage and balance collisions are relevant for TOD attacks.
+
+An attacker could modify the execution of some transaction $T_B$, by placing a transaction $T_A$ before it that modifies state that is used by $T_B$, i.e. having a write-read or write-write collision between $T_A$ and $T_B$. Therefore, the attacker needs to modify the relevant state.
+Assume that $T_B$ accesses the codes and nonces of some set of address $A$.
+
+Let us first focus on the instructions, that could modify the accessed codes and nonces in $A$, namely \verb|SELFDESTRUCT|, \verb|CREATE| and \verb|CREATE2|. Since the EIP-6780 update\cite{noauthor_eip-6780_nodate}, \verb|SELFDESTRUCT| only destroys a contract if the contract was created in the same transaction. Therefore, \verb|SELFDESTRUCT| can only modify a code within the same transaction, but cannot be used to attack a different transaction. The instructions to create a new contract, \verb|CREATE| and \verb|CREATE2|, fail when there is already a contract at the target address \cite{noauthor_evm_2024}. Therefore, we can only modify the code if the contract did not exist previously. If this is the case, it is unlikely that $T_B$ would make a transaction to exactly this address, which is calculated using the attacker's address among other values. Therefore, none of these instructions is usable for a TOD attack.
+
+Apart from instructions, the nonces of an EOA can also be increased by transactions themselves. The only way that $T_B$ can access the nonce of an EOA is through the gas cost calculation when sending Ether to this address. The calculation returns a different cost if the recipient already exists. Thus, an attack would be that $T_B$ transfers some Ether to an attacker controlled EOA address $a$, and the attacker creates the account at addres $a$ in $T_A$, which slightly increases the gas cost for $T_B$. Again, this attack seems unrealistic, as the victim would have to send Ether to an attacker controlled address.
+
+Therefore, the remaining attack vectors are \verb|SSTORE|, to modify the storage of an account, and \verb|CALL|, \verb|CALLCODE|, \verb|SELFDESTRUCT| and Ether transfer transactions, to modify the balance of an account.
+
+\section{Everything is TOD}
+
+Note, that our definition of TOD is very broad. For instance, if a transaction $T_B$ uses some storage value for a calculation, then $T_B$ the execution likely depends on the transaction that set this storage value. Similarly, when someone wants to transfer Ether, it can only do so when they first received that Ether. Thus, they are dependent on some transaction that gave them this Ether.\todo{How do block rewards play into this?}
 
 \begin{theorem}
     For every transaction $T_B$ after the London upgrade\footnote{We reference the London upgrade here, as this introduced the base fee for transactions.}, there exists a transaction $T_A$ such that $(T_A, T_B)$ is TOD.
 \end{theorem}
 
 \begin{proof}
-    Consider an arbitrary transaction $T_B$ with the sender being some address $a$. As the sender must pay a base fee \cite[p.8]{wood_ethereum_2024} and every transaction incurs a gas cost \cite[p.9]{wood_ethereum_2024}, the sender must pay some Wei as a transaction fee. Therefore, we must have $\sigma(a)_b > fee$ for some transaction fee $fee$. This requires, that another transaction $T_A$ increased the balance of $a$ to be higher than $fee$. Without $T_A$, $T_B$ would not be a valid transaction as $a$ would not have enough Wei to cover the transaction fee.
+    Consider an arbitrary transaction $T_B$ with the sender being some address $sender$. As the sender must pay a base fee and every transaction incurs a gas cost, the sender must have some Ether s.t. $T_B$ is a valid transaction, i.e. $\sigma(sender)_b \ge v_0$ for the upfront cost $v_0$ \cite[p.8-9]{wood_ethereum_2024}. This requires, that another transaction $T_A$ increased the balance of $sender$ to be high enough to pay the upfront cost, i.e. $prestate(\Delta_{T_A})(sender)_b < v_0$ and $poststate(\Delta_{T_A})(sender)_b \ge v_0$.
+    
+    When we calculate $\sigma - \Delta_{T_A}$ for our TOD definition, we would set the balance of $sender$ to $prestate(\Delta_{T_A})(sender)_b < v_0$ and then execute $T_B$ based on this state. In this case, $T_B$ would be invalid, as the $sender$ would not have enough Ether to cover the upfront cost.
 \end{proof}
 
-Similar arguments can be made about transactions that execute some code (a previous transaction must have created the contract with this code), or transactions that access some non-zero storage slots (a previous transaction must have set this storage slot).
+Given this property, it is clear that TOD alone is not a useful attack indicator. In the following, we provide some more restrictive definitions.
 
-Given this property, it is clear that TOD alone is not a useful attack indicator. In the following, we provide some more restrictive definitions, which all are subsets of the TOD definition.
+\iffalse
+    \chapter{Frontrunning definitions}
 
-\chapter{Frontrunning definitions}
-
-\todo{Is it important to differentiate between sandwich attacks and displacement attacks?}
-\todo{Should we go from first source to last sink? e.g. in a swap call, we will have multiple LOG events at different levels.}
+    \todo{Is it important to differentiate between sandwich attacks and displacement attacks?}
+    \todo{Should we go from first source to last sink? e.g. in a swap call, we will have multiple LOG events at different levels.}
 
 
-For $T_A \rightarrow T_B$:
+    For $T_A \rightarrow T_B$:
 
-\todo{I think this is similar to the $attack altered data$ / taint source from the combatting paper}
+    \todo{I think this is similar to the $attack altered data$ / taint source from the combatting paper}
 
-\begin{enumerate}
-    \item TOD write point: point, where $T_A$ modifies some state, that is read by $T_B$
-    \item TOD read point: point, where $T_B$ reads some state, that was modified by $T_A$
-    \item TOD hidden write point: point, where $T_A$ modifies some state, that is overwritten by $T_B$
-    \item TOD overwrite point: point, where $T_B$ overwrites some state, that was written by $T_A$
-\end{enumerate}
+    \begin{enumerate}
+        \item TOD write point: point, where $T_A$ modifies some state, that is read by $T_B$
+        \item TOD read point: point, where $T_B$ reads some state, that was modified by $T_A$
+        \item TOD hidden write point: point, where $T_A$ modifies some state, that is overwritten by $T_B$
+        \item TOD overwrite point: point, where $T_B$ overwrites some state, that was written by $T_A$
+    \end{enumerate}
 
-The pair of (TOD write point, TOD read point) presents a write-read conflict. The pair of (TOD hidden write point, TOD overwrite point) presents a write-write conflict.
+    The pair of (TOD write point, TOD read point) presents a write-read conflict. The pair of (TOD hidden write point, TOD overwrite point) presents a write-write conflict.
 
-If we have a write-read conflict and a write-write conflict, $T_B$ reads some state and then overwrites it. Thus, $T_B$ knows of the modified state before overwriting.
+    If we have a write-read conflict and a write-write conflict, $T_B$ reads some state and then overwrites it. Thus, $T_B$ knows of the modified state before overwriting.
 
-One instance would be a simple counter, where both $T_A$ and $T_B$ increment the same counter in the state. Here, we would have a write-read conflict, as $T_B$ reads the counter incremented by $T_A$. And further, we would have a write-write conflict, as $T_B$ updates the same counter as $T_A$.
+    One instance would be a simple counter, where both $T_A$ and $T_B$ increment the same counter in the state. Here, we would have a write-read conflict, as $T_B$ reads the counter incremented by $T_A$. And further, we would have a write-write conflict, as $T_B$ updates the same counter as $T_A$.
 
-ERC-20 approval attack would consist of the hidden write point (where approval is set to 0) and an overwrite point (where approval is set to some higher value).
+    ERC-20 approval attack would consist of the hidden write point (where approval is set to 0) and an overwrite point (where approval is set to some higher value).
 
-ERC-20 approval mitigation (with require for the previous value) would consist of a write point (where approval is set to 0) and a read point (where the approval is used for the require statement).
+    ERC-20 approval mitigation (with require for the previous value) would consist of a write point (where approval is set to 0) and a read point (where the approval is used for the require statement).
 
-Uniswap token swap would consist of both a write-read conflict and a write-write conflict. The write-read conflict exists, as $T_A$ modifies the reserves state and $T_B$ reads the current reserves to calculate a price. The write-write conflict exists, as $T_A$ modifies the reserves state and $T_B$ modifies it as well. Contrary to ERC-20 approval, the overwritten value depends on the previous value (which we could show in the data flow graph).
+    Uniswap token swap would consist of both a write-read conflict and a write-write conflict. The write-read conflict exists, as $T_A$ modifies the reserves state and $T_B$ reads the current reserves to calculate a price. The write-write conflict exists, as $T_A$ modifies the reserves state and $T_B$ modifies it as well. Contrary to ERC-20 approval, the overwritten value depends on the previous value (which we could show in the data flow graph).
 
-\section{TOD sinks}
+    \section{TOD sinks}
 
-\section{TOD sanitizers}
+    \section{TOD sanitizers}
 
+\fi
 \chapter{TOD candidate mining}
 
 In this chapter, we discuss how we search for potential TODs in the Ethereum history. The methodology is visualized in \todo{graph}. First, we use the \verb|debug_traceBlockByNumber| RPC method to obtain the accessed and modified state of the transactions and store them locally in a database. Then, we match the accessed and modified states of all transactions to get TOD transaction pairs, where one transaction modifies some state and the other transaction reads this state. For simplicity, we will call these potential TOD transaction pairs "TOD candidates". Finally, we use several heuristics to filter out TOD candidates, which are not relevant for the further analysis.
@@ -701,12 +719,7 @@ For a state modification we store a $(T, K, V_{pre}, V_{post})$ entry. $T$ and $
 After replaying all transactions, we match the state modifications with the state accesses. We query the database for transaction pairs $(T_A, T_B)$, where $T_A$ occurred before $T_B$ and $T_A$ has a state modification $(T, K, V_{pre}, V_{post})$ that matches a state access $(T, K, V_{post})$ of $T_B$.\todo{Reference indirect dependency section, add statistic what it would be without this}
 
 
-\iffalse
-    Contrary to the definition of TOD, this does not necessarily mean, that the execution of $T_B$ yields a different result because of $T_A$. For instance if $T_A$ modifies storage value from $1$ to $2$ and $T_B$ loads this storage value without using it, there is no impact on $T_B$. \todo{this should go to the definition/general TOD discussion section}
-\fi
-
-
-
+\todo{Figure on unique transactions in TOD candidates}
 
 \begin{figure}[h]
     \centering
