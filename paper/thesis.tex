@@ -140,6 +140,7 @@
 \chapter{Introduction}
 \todo{Enter your text here.}
 
+\iffalse
 \section{Related work}
 
 Interesting things:
@@ -226,12 +227,13 @@ Problems with this approach:
           \subitem (victim tx stays in same context \checkmark)
     \item replay is done with a different environment
 \end{enumerate}
+\fi
 
 \section{Contributions}
 
 \begin{itemize}
-    \item Precise definition of transaction replaying in the context of TOD and analysis of previous works w.r.g.t. this definition.
-    \item Compilation of instructions that can cause TOD.
+    \item Precise definition of TOD in the context of blockchain transaction analysis.
+    \item Theoretical discussion of TOD, including compilation of instructions that can cause TOD.
     \item Methodology to mine potential TOD transaction pairs using only the RPC interface of an archive node, rather than directly accessing it.
 \end{itemize}
 
@@ -851,41 +853,6 @@ Ideas, potentially a mixture of those:
 
 \section{Trace replaying}
 
-\subsection{RPC methods}
-
-
-\todo{\href{https://github.com/paradigmxyz/reth/issues/8202}{Prestate tracer currently does not include prestate for reverted call contexts}}
-\todo{Use quicknode RPC to compare stateDiff/prestate traces from our Reth with their Erigon instance.}
-
-\subsubsection{trace\_call}
-
-
-Takes:
-\begin{enumerate}
-    \item tx info
-    \item block number/hash
-    \item multiple trace types (Trace, VmTrace, StateDiff)
-    \item state overrides (storage, code, ...) - Use stateDiff!
-    \item block overrides (number, hash, timestamp, ...)
-\end{enumerate}
-
-No replaying of previous transactions in the same block, thus we would need to use the state overrides for this effect (calculate state overrides offline, based on stateDiffs from all transactions).
-
-\subsubsection{debug\_traceCall}
-
-Takes:
-\begin{enumerate}
-    \item tx info
-    \item block number/hash
-    \item multiple trace types via mux (4byte, call tracer, prestate/diffstate, JS)
-    \item state overrides (storage, code, ...) - Use stateDiff!
-    \item block overrides
-\end{enumerate}
-
-No replaying of previous transactions in the same block, thus we would need to use the state overrides for this effect (calculate state overrides offline, based on stateDiffs from all transactions).
-
-No opcode tracer in reth?
-
 \subsection{Algorithm}
 
 Lets say, we have a transaction $T_A$ and a $T_B$, where $T_A$ occurred in block $Block_A$ and $T_B$ occurred in $Block_B$ (which may be equal to $Block_A$). Further, $T_A$ occurred before $T_B$, denoted as $T_A \rightarrow T_B$.
@@ -898,62 +865,17 @@ We want to replay following scenarios:
 \end{enumerate}
 
 \subsubsection{Actual: $T_A \rightarrow T_B$}
-In the actual scenario, we replay what actually happened on the blockchain. The observed behaviour should be identical to the one recorded on the blockchain.
 
-To replay $T_A$, we take the environment from $Block_A$ and the state $S_{base}$ before any transaction was executed in $Block_A$. Then, we go through all transactions that happened in $Block_A$ before $T_A$ and add their state changes to $S_{base}$. We end up with $S = S_{base} + \sum_{i=0}^{i=index(T_A)}SD_{T_i}$.
+For $T_A$: We start with $\sigma_{B_A}$, being the world state at the start of the block containing $T_A$. Then we set $\sigma = \sigma_{B_A} + \sum_{i=0}^{i=index(T_A)}\Delta_{T(B_B)_i}$ and execute $\sigma \xrightarrow{T_A} \sigma\prime$.
 
-We then execute $T_A$ in the environment from $Block_A$ and with the state $S$ and record its trace.
-
-The replaying of $T_B$ is analogous, by using the environment from $Block_B$ and a state that is built based on $Block_B$ and all transactions prior to $T_B$.
+For $T_B$: We start with $\sigma_{B_B}$, being the world state at the start of the block containing $T_B$. Then we set $\sigma = \sigma_{B_B} + \sum_{i=0}^{i=index(T_B)}\Delta_{T(B_B)_i}$ and execute $\sigma \xrightarrow{T_B} \sigma\prime$.
 
 \subsubsection{Reverse: $T_B \rightarrow T_A$}
 
-In the reverse scenario, we want to understand, what would have happend if they were executed the other way around. We model the executions state and environment identical to the actual scenario, except for the state impacts by $T_B$ and $T_A$. If we would have differences in the state or environment model, they could influence the transaction and hinder the focused analysis of the TOD.
 
-To simulate $T_B$ before $T_A$, we execute $T_B$ as in the actual scenario. However, as a state we use $S\prime = S - SD_{T_A}$, ie we remove the changes by $T_A$ from the state.
+For $T_B$: We start with $\sigma_{B_B}$, being the world state at the start of the block containing $T_B$. Then we set $\sigma = \sigma_{B_B} + (\sum_{i=0}^{i=index(T_B)}\Delta_{T(B_B)_i}) - \Delta_{T_A}$ and execute $\sigma \xrightarrow{T_B} \sigma\prime$.
 
-To simulate $T_A$ after $T_B$, we execute $T_A$ as in the actual scenario. However, as a state we use $S\prime = S + SD_{T_B}$\todo{We should add the result from executing $T_B$ before $T_A$, not the actual result (from executing $T_B$ after $T_A$)}, ie we add the changes by $T_B$ on top of the state.
-
-In both cases, the only difference for the execution, is the modification with the other transactions state. Thus, only this state modification can impact a change of the execution, which is exactly what we want to simulate the TOD.
-
-Compared to other methods, this state overriding method does not struggle with changed environments if we move transactions between blocks and changed states if we move transactions to other positions within blocks.
-
-However, it could be "unrealistic", if there is some transaction $T_A \rightarrow T_C \rightarrow T_B$ where $T_C$ also depends on state modifications done by $T_A$. In such a scenario, moving $T_A$ after $T_B$ would in reality also impact $T_C$ which directly or indirectly could also impact $T_A$ and $T_B$. We can prevent this, if we only analyze pairs of transactions where there is no such intermediate transaction. For instance, in this case we could analyze $T_A \rightarrow T_C$ and $T_C \rightarrow T_B$ in isolation.
-
-\begin{verbatim}
-contract IntermediateDependencyExample {
-    function setX(x) {
-        self.x = x;
-    }
-    function setXIfGreater(x, threshold) {
-        if (self.x > threshold) {
-            self.x = x
-        }
-    }
-    function readX() {
-        return self.x
-    }
-}
-\end{verbatim}
-
-\begin{verbatim}
-Scenario 1:
-
-// this could also only be partial
-// eg if A sets X and Y, and C only sets Y
-// x = 0
-Tx A: setX(1) // x = 1
-Tx C: setX(2) // x = 2
-Tx B: readX() // -> 2
-
-Scenario 2:
-// x = 0
-Tx A: setX(20) // x = 20
-Tx C: setXIfGreater(30, 10) // x = 30
-Tx B: readX()  // -> 30
-\end{verbatim}
-
-In scenario 2, if we would execute $T_A$ after $T_B$, the $setXIfGreater$ call by $T_C$ would also behave differently in reality. $T_B$ would return $0$, however this is the result of $T_A$ and $T_C$ acting together. Thus, we canont analyze the pair $(T_A, T_B)$ in isolation, as it depends on $T_C$. However, we could analyze $(T_A, T_C)$ and $(T_C, T_B)$ separately.
+For $T_A$: We start with $\sigma_{B_A}$, being the world state at the start of the block containing $T_A$. Then we set $\sigma = \sigma_{B_A} + (\sum_{i=0}^{i=index(T_A)}\Delta_{T(B_B)_i}) + \Delta_{T_B\prime}$ and execute $\sigma \xrightarrow{T_A} \sigma\prime$.
 
 \section{Trace parsing}
 
