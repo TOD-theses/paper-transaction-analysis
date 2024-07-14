@@ -141,92 +141,92 @@
 \todo{Enter your text here.}
 
 \iffalse
-\section{Related work}
+    \section{Related work}
 
-Interesting things:
-- name
-- source is available?
-- does it use RPC / instrumentation / native tracing?
-- does it detect some kind of frontrunning
+    Interesting things:
+    - name
+    - source is available?
+    - does it use RPC / instrumentation / native tracing?
+    - does it detect some kind of frontrunning
 
-See table \ref{tab:blockchain_history_analyzers}.
-
-
-% TODO: is there related work in the parallel EVM field? TOD is highly relevant for this
-% https://ieeexplore.ieee.org/abstract/document/10102454
+    See table \ref{tab:blockchain_history_analyzers}.
 
 
-\begin{table}[h]
-    \begin{center}
-        \begin{tabular}{ | l | c  | c | c | c | }
-            \hline
-            Tool/Authors                                     & Scope            \\ \hline
-            EthScope \cite{wu_time-travel_2022}              & Generalized      \\ \hline
-            TokenScope \cite{chen_tokenscope_2019}           & ERC-20 tokens    \\ \hline
-            TXSPECTOR \cite{zhang_txspector_2020}            & Generalized      \\ \hline
-            Horus \cite{ferreira_torres_eye_2021}            & Generalized      \\ \hline
-            SODA \cite{chen_soda_2020}                       & Generalized      \\ \hline
-            DEFIER \cite{su_evil_2021}                       & Generalized      \\ \hline
-            Zhou et al. \cite{zhou_ever-evolving_2020}       & Generalized      \\ \hline
-            Perez et al. \cite{perez_smart_2021}             & Generalized      \\ \hline
-            Wang et al. \cite{wang_impact_2022}              & Sandwich attacks \\ \hline
-            Erebus-redgiant \cite{zhang_combatting_2023}     & Frontrunning     \\ \hline
-            Frontrunner Jones \cite{torres_frontrunner_2021} & Frontrunning     \\ \hline
-        \end{tabular}
-        \caption{Blockchain history analysis references. Generalized means, that the data collection and analysis framework is not tailored to specific vulnerabilities.}
-        \label{tab:blockchain_history_analyzers}
-    \end{center}
-\end{table}
-\todo{Better caption}
-
-\section{Related approaches}
-
-\subsection{Combatting paper - Erebus-redgiant}
-
-How do they replay potential attack/victim transactions?
-
-Their framework allows forking at a specific block and tx index.
-
-PrepareStateAndContext - replays up to tx index.
+    % TODO: is there related work in the parallel EVM field? TOD is highly relevant for this
+    % https://ieeexplore.ieee.org/abstract/document/10102454
 
 
-They skip potential victim transactions if:
+    \begin{table}[h]
+        \begin{center}
+            \begin{tabular}{ | l | c  | c | c | c | }
+                \hline
+                Tool/Authors                                     & Scope            \\ \hline
+                EthScope \cite{wu_time-travel_2022}              & Generalized      \\ \hline
+                TokenScope \cite{chen_tokenscope_2019}           & ERC-20 tokens    \\ \hline
+                TXSPECTOR \cite{zhang_txspector_2020}            & Generalized      \\ \hline
+                Horus \cite{ferreira_torres_eye_2021}            & Generalized      \\ \hline
+                SODA \cite{chen_soda_2020}                       & Generalized      \\ \hline
+                DEFIER \cite{su_evil_2021}                       & Generalized      \\ \hline
+                Zhou et al. \cite{zhou_ever-evolving_2020}       & Generalized      \\ \hline
+                Perez et al. \cite{perez_smart_2021}             & Generalized      \\ \hline
+                Wang et al. \cite{wang_impact_2022}              & Sandwich attacks \\ \hline
+                Erebus-redgiant \cite{zhang_combatting_2023}     & Frontrunning     \\ \hline
+                Frontrunner Jones \cite{torres_frontrunner_2021} & Frontrunning     \\ \hline
+            \end{tabular}
+            \caption{Blockchain history analysis references. Generalized means, that the data collection and analysis framework is not tailored to specific vulnerabilities.}
+            \label{tab:blockchain_history_analyzers}
+        \end{center}
+    \end{table}
+    \todo{Better caption}
 
-\begin{enumerate}
-    \item error victim transactions (\todo{Are these failed transactions in Ethereum, or error somewhere in their framework? If it's the first, why???})
-    \item "filtered" transactions \todo{What are these?}
-    \item unverified contracts in victim transactions
-    \item victim tx is contract creation (why???). But a good label :)
-    \item victim tx is ether transfer
-    \item no overlap with attack tx (compare sets of contracts/accounts)
-    \item no dependency (storage and balance dependencies, but seem to ignore dependencies within reverted calls)
-\end{enumerate}
+    \section{Related approaches}
 
-Replaying in the attack free scenario:
+    \subsection{Combatting paper - Erebus-redgiant}
 
-\begin{enumerate}
-    \item take attack tx state (I guess prestate)
-    \item take victim context (I guess block environment, timestamp, ...)
-    \item apply "prerequesites" - all previous transactions from the same sender within (attack, victim-1)?
-    \item apply + trace victim tx
-    \item apply + trace attack tx
-\end{enumerate}
+    How do they replay potential attack/victim transactions?
 
-For prerequisites, refer to \href{https://github.com/Troublor/erebus-redgiant/blob/4544163f0c6a369b35c3237851f482d240fa7bbd/dataset/tx_history_test.go#L42-L53}.
+    Their framework allows forking at a specific block and tx index.
 
-Problems with this approach:
+    PrepareStateAndContext - replays up to tx index.
 
-\begin{enumerate}
-    \item Prerequisites is an arbitrary choice
-          \subitem what if prerequisites have collisions with the attack?
-          \subitem what if prerequisites depend on other transactions that were not replayed?
-          \subitem what if victim tx depends on other transactions that were not replayed?
-    \item all transactions share the same context
-          \subitem attack tx is moved to different context
-          \subitem prerequisites are potentially moved to different context
-          \subitem (victim tx stays in same context \checkmark)
-    \item replay is done with a different environment
-\end{enumerate}
+
+    They skip potential victim transactions if:
+
+    \begin{enumerate}
+        \item error victim transactions (\todo{Are these failed transactions in Ethereum, or error somewhere in their framework? If it's the first, why???})
+        \item "filtered" transactions \todo{What are these?}
+        \item unverified contracts in victim transactions
+        \item victim tx is contract creation (why???). But a good label :)
+        \item victim tx is ether transfer
+        \item no overlap with attack tx (compare sets of contracts/accounts)
+        \item no dependency (storage and balance dependencies, but seem to ignore dependencies within reverted calls)
+    \end{enumerate}
+
+    Replaying in the attack free scenario:
+
+    \begin{enumerate}
+        \item take attack tx state (I guess prestate)
+        \item take victim context (I guess block environment, timestamp, ...)
+        \item apply "prerequesites" - all previous transactions from the same sender within (attack, victim-1)?
+        \item apply + trace victim tx
+        \item apply + trace attack tx
+    \end{enumerate}
+
+    For prerequisites, refer to \href{https://github.com/Troublor/erebus-redgiant/blob/4544163f0c6a369b35c3237851f482d240fa7bbd/dataset/tx_history_test.go#L42-L53}.
+
+    Problems with this approach:
+
+    \begin{enumerate}
+        \item Prerequisites is an arbitrary choice
+              \subitem what if prerequisites have collisions with the attack?
+              \subitem what if prerequisites depend on other transactions that were not replayed?
+              \subitem what if victim tx depends on other transactions that were not replayed?
+        \item all transactions share the same context
+              \subitem attack tx is moved to different context
+              \subitem prerequisites are potentially moved to different context
+              \subitem (victim tx stays in same context \checkmark)
+        \item replay is done with a different environment
+    \end{enumerate}
 \fi
 
 \section{Contributions}
@@ -519,6 +519,7 @@ With our definition, the results in the normal execution are equivalent to the r
 This contrasts other implementations, where transactions are executed in different block environments than originally or are executed based on a different starting state. Both of these can alter the result in ways that are not related to the impact of $T_A$, which we want to analyze.
 
 \subsection{Definition weaknesses}
+\label{sec:weaknesses}
 
 The intuitive idea of our definition is, to compare $T_A \rightarrow T_{X_i} \rightarrow T_B$ with $T_{X_i} \rightarrow T_B$, i.e. reckoning what would have happened without $T_A$. However, the definition we provide does not perfectly match this concept. As explained below, these inconsistencies arise with certain interplays between $T_A$ and some intermediary transaction $T_X$, which are ignored by our definition. This may be desirable, as we want to focus solely on the effect of $T_A$ on $T_B$, however it may lead to unexpected results if one is not aware of this.
 
@@ -638,6 +639,7 @@ In table \ref{tab:state_writing_instructions} we see instructions that can modif
 Some state accesses and modifications are inherent to transaction execution. To pay for the transaction fees, the balance of the sender is accessed and modified. When a transaction transfers some Wei from the sender to the recipient, it als modifies the recipient's balance. To check if the recipient is a contract account, the transaction also needs to access the code of the recipient. And finally, it also verfies the sender's nonce and increments it by one \cite[p.9]{wood_ethereum_2024}.
 
 \subsection{Relevant collisions for attacks}
+\label{sec:relevant-collisions}
 
 The previous sections list possible ways to access and modify the world state. Previous studies have focused on storage and balance collisions, however they did not discuss if or why code and nonce collisions are not important\todo{Reference some of them}. Here, we try to argue, why only storage and balance collisions are relevant for TOD attacks.
 
@@ -660,7 +662,7 @@ Note, that our definition of TOD is very broad. For instance, if a transaction $
 
 \begin{proof}
     Consider an arbitrary transaction $T_B$ with the sender being some address $sender$. As the sender must pay a base fee and every transaction incurs a gas cost, the sender must have some Ether s.t. $T_B$ is a valid transaction, i.e. $\sigma(sender)_b \ge v_0$ for the upfront cost $v_0$ \cite[p.8-9]{wood_ethereum_2024}. This requires, that another transaction $T_A$ increased the balance of $sender$ to be high enough to pay the upfront cost, i.e. $prestate(\Delta_{T_A})(sender)_b < v_0$ and $poststate(\Delta_{T_A})(sender)_b \ge v_0$.
-    
+
     When we calculate $\sigma - \Delta_{T_A}$ for our TOD definition, we would set the balance of $sender$ to $prestate(\Delta_{T_A})(sender)_b < v_0$ and then execute $T_B$ based on this state. In this case, $T_B$ would be invalid, as the $sender$ would not have enough Ether to cover the upfront cost.
 \end{proof}
 
@@ -703,30 +705,22 @@ Given this property, it is clear that TOD alone is not a useful attack indicator
 \fi
 \chapter{TOD candidate mining}
 
-In this chapter, we discuss how we search for potential TODs in the Ethereum history. The methodology is visualized in \todo{graph}. First, we use the \verb|debug_traceBlockByNumber| RPC method to obtain the accessed and modified state of the transactions and store them locally in a database. Then, we match the accessed and modified states of all transactions to get TOD transaction pairs, where one transaction modifies some state and the other transaction reads this state. For simplicity, we will call these potential TOD transaction pairs "TOD candidates". Finally, we use several heuristics to filter out TOD candidates, which are not relevant for the further analysis.
-
-% NOTE: the mined attacks won't be representative of all contracts
-%'s favored towards attacked contracts, and to frequently-used contracts
+In this chapter, we discuss how we search for potential TODs in the Ethereum blockchain. We use the RPC from an archive node to obtain transactions and their state accesses and modifications. Then we search for collisions between these transactions to find TOD candidates. And finally, we filter out TOD candidates, that are not relevant to our analysis.
 
 \section{TOD candidate finding}
 
-In this step, we find transaction pairs $(T_A, T_B)$, such that $T_B$ read or modified some state, that was previously written by $T_A$. We consider all possible state modifications, namely nonce, balance, storage and code modifications.
+We make use of the RPC method \verb|debug_traceBlockByNumber|, which allows replaying all transactions of a block the same way they were originally executed. With the \verb|prestateTracer| config, this method also outputs, which state has been accessed, and using the \verb|diffMode| config, also which state has been modified\footnote{When running the prestateTracer in diffMode, several fields are only implicit in the response. We need to make these fields explicit for further analysis. Refer to the documentation or the source code for further details.}.
 
-For all blocks we analyze, we replay each transaction in this block with the \verb|debug_traceBlockByNumber| RPC method. Using the \verb|prestateTracer| we get the accessed state and state modifications by each transaction\footnote{When running the prestateTracer in diffMode, several fields are only implicit in the response. We need to make these fields explicit for further analysis. Refer to the documentation or the source code for further details.}\todo{reference}. We store this data in a local database for further analysis.
+By inspecting the source code from the tracers for Reth\cite{noauthor_paradigmxyzrevm-inspectors_2024} and results from the RPC call, we found out, that without \verb|diffMode| it always includes the account's balance, nonce and code (for contract accounts), even if only one of them was touched. Therefore, it is not precise on what exactly was touched, which can be a source of false positives for collisions. Similarly, with \verb|diffMode| enabled, each account in \verb|pre| also contains the account's balance, nonce and code (for contract accounts), even if only one of the fields was modified\footnote{I opened a \href{https://github.com/ethereum/go-ethereum/pull/30081}{pull request} to clarify this behaviour and now this is also reflected in the documentation\cite{noauthor_built-tracers_2024}.}, however, by using \verb|post| we can understand which of those fields have actually been modified.
 
-For a state access we store a $(T, K, V)$ entry, where $T$ is the state type, $K$ describes which state was accessed and $V$ is the accessed value. For instance, when a transaction reads the balance of a contract, we have $T = balance$, $K$ is the address of the contract and $V$ is the balance at this time. For nonce, balance and code we use the address as a key, and for storage slots we use the tuple of address and slot as a key.
-
-For a state modification we store a $(T, K, V_{pre}, V_{post})$ entry. $T$ and $K$ are the same as before. $V_{pre}$ is the state value before execution of the transaction and $V_{post}$ the value after the execution.
-
-After replaying all transactions, we match the state modifications with the state accesses. We query the database for transaction pairs $(T_A, T_B)$, where $T_A$ occurred before $T_B$ and $T_A$ has a state modification $(T, K, V_{pre}, V_{post})$ that matches a state access $(T, K, V_{post})$ of $T_B$.\todo{Reference indirect dependency section, add statistic what it would be without this}
-
+We store all the accesses and modifications in a database and then query it for write-read\todo{And write-write} collisions to obtain a preliminary set of TOD candidates.
 
 \todo{Figure on unique transactions in TOD candidates}
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.8\textwidth]{tod_collisions_hist.png}
-    \caption{The histogram and eCDF of the block distance for TOD transaction pairs. The blue bars show how many TOD transaction pairs have been found that are n blocks apart. The orange line shows the percentage of TOD transaction pairs, that are at most n blocks apart.}
+    \caption{The histogram and eCDF of the block distance for TOD candidates. The blue bars show how many TOD candidates have been found that are n blocks apart. The orange line shows the percentage of TOD candidates, that are at most n blocks apart.}
     \label{fig:tod_block_dist}
 \end{figure}
 
@@ -735,51 +729,60 @@ After replaying all transactions, we match the state modifications with the stat
 
 Many of the TOD candidates we gain in the previous section are not relevant for our further analysis. To prevent unnecessary computation and distortion of our results, we filter them out.
 
+We go through each filter in table \ref{tab:tod_candidate_filters} and filter out the TOD candidates that match the criteria.
+
 \begin{table}[h]
     \begin{center}
         \begin{tabular}{ | l | l |  }
             \hline
-            \thead{Filter name}      & \thead{Short description}                                  \\ \hline
-            Indirect dependency      & \makecell[l]{$T_A$ could indirectly influence $T_B$.       \\For instance, if candidates $(T_A, T_X)$ and $(T_X, T_B)$ exist.} \\ \hline
-            Block windows            & The blocks of $T_A$ and $T_B$ are at most n blocks apart   \\ \hline
-            Block producers          & The state overlap is only the balance of a block producer. \\ \hline
-            EOA nonce                & The state overlap is only the nonce of an EOA.             \\ \hline
-            Same sender              & $T_A$ is from the same sender as $T_B$.                    \\ \hline
-            Recipient Ether transfer & $T_B$ is an Ether transfer without code execution.         \\ \hline
-            % Maybe: what else?
+            \thead{Filter name}      & \thead{Description of filter criteria}                                  \\ \hline
+            Same-value collision     & \makecell[l]{Only take collisions where $T_A$ writes exactly the value, \\that is read or overwritten by $T_B$.} \\ \hline
+            Nonce and code collision & Drop nonce and code collisions.                                         \\ \hline
+            Block windows            & Drop transactions that are 25 or more blocks apart.                     \\ \hline
+            Indirect dependency      & \makecell[l]{Drop TOD candidates with an indirect dependency.           \\e.g. if TOD candidates $(T_A, T_X)$ and $(T_X, T_B)$ exist.} \\ \hline
+            Block producers          & Drop collisions on the block producer's balance.                        \\ \hline
+            Same sender              & Drop if $T_A$ and $T_B$ are from the same sender.                       \\ \hline
+            Recipient Ether transfer & Drop if $T_B$ does not execute code.                                    \\ \hline
         \end{tabular}
-        \caption[TOD candidate filters]{TOD candidate filters.}
+        \caption[TOD candidate filters]{TOD candidate filters sorted by usage order. When a filter describes the removal of collisions, the TOD candidates will be updated accordingly.}
         \label{tab:tod_candidate_filters}
     \end{center}
 \end{table}
-
-We filter a TOD candidate $(T_A, T_B)$ if any of the filters from table \ref{tab:tod_candidate_filters} applies. The filters are explained in the following section.
-
 \subsection{Filters}
+
+\subsubsection{Same-value collisions}
+
+When we have many transactions that modify the same state, e.g. the balance of the same account, they will all have a write-write conflict with each other. The number of TOD candidates grows quadratic with the number of transactions modifying the same state. For instance, if 100 transactions modify the balance of address $a$, the first transaction would have a write-write conflict with all other 99 transactions, the second transaction with the remaining 98 transactions, etc., leading to a total of $\frac{n^2-n}{2}$ write-write conflicts and TOD candidates.
+
+To reduce this growth of TOD candidates, we also require for a collision, that $T_A$ writes exactly the value that is read or overwritten by $T_B$. With the example of 100 transactions modifying the balance of address $a$, when the first transaction sets to balance to 1234, it would only have a write-write conflict with transactions where the balance of $a$ was exactly 1234 before the execution. If all transactions wrote different balances, then the first transaction would have write-write conflict with the second transaction, the second transaction with the third, etc., leading to a total of $99$ write-write conflicts and TOD candidates.
+
+\subsubsection{Nonce and Code collisions}
+
+We showed in section \ref{sec:relevant-collisions}, that nonce and code collisions are not relevant for TOD attacks. Therefore, we ignore collisions for this state type.\todo{Implement this.}
 
 \subsubsection{Block windows}
 
-If the
+\todo{Mention, that this was also used by Frontrunner and Combatting paper.}
+
+According to a study of 24 million transactions from 2019, the maximum observed transaction latency, from being pending to being included in a block, was below 200 seconds. If we combine this with the current block time, which is 12 seconds per block according to Etherscan \cite{etherscanio_ethereum_2024}, a transaction takes at most $\frac{200}{12} \approx 17$ blocks until a transaction is included in the blockchain, and an attacker can no longer frontrun it.
+
+Therefore, if the blocks of two transactions are more than 17 blocks apart, a collision should not be because of a frontrunning attack. As the study is already 5 years old, we use a block window of 25 blocks instead, to account for a potential increase in latency since then.
+
+Thus, we filter out all TOD candidates, where $T_A$ is in a block that is 25 or more blocks away from the block of $T_B$.
 
 \subsubsection{Block producers}
 
-In Ethereum, each transaction must pay a transaction fee to the block producer and thus modifies the block producer's\todo{Is this a correct '?} balance. This would qualify each transaction pair in a block as a TOD candidate, as they all modify the balance of the block producer's address.
+In Ethereum, each transaction must pay a transaction fee to the block producer and thus modifies the block producer's balance. This would qualify each transaction pair in a block as a TOD candidate, as they all modify the balance of the block producer's address.
 
-We exclude TOD candidates, where the only collision\todo{Did we define "collision" previously?} is the balance of any block producer.
-
-\todo{Graph on transaction fee dependencies}
+We exclude TOD candidates, where the only collision is the balance of any block producer.
 
 \subsubsection{Indirect dependency}
 
-\iffalse
-    The overall goal of our analysis, is to analyze the effects of the transaction order. For this, we will take a TOD candidate $(T_A, T_B)$ and analyze what would have happened if they were executed in the opposite order, i.e. $(T_B, T_A)$.
-\fi
+As argued in section \ref{sec:weaknesses}, indirect dependencies can cause unexpected results in our analysis, therefore we will filter TOD candidates that have an indirect dependency.
 
-As argued in section \todo{x}, indirect dependencies can hinder our analysis. We already have a model of all direct (potential) dependencies with the TOD candidates. We can build a transaction dependency graph $G = (V, E)$ with $V$ being all transactions and $E = \{ (T_A, T_B) \mid (T_A, T_B) \in \text{TOD candidates} \}$. We then filter out all TOD candidates $(T_A, T_B)$ where there exists a path $T_A, T_{X_1}, \dots, T_{X_n}, T_B$ with at least one intermediary node $T_{X_i}$.
+We already have a model of all direct (potential) dependencies with the TOD candidates. We can build a transaction dependency graph $G = (V, E)$ with $V$ being all transactions and $E = \{ (T_A, T_B) \mid (T_A, T_B) \in \text{TOD candidates} \}$. We then filter out all TOD candidates $(T_A, T_B)$ where there exists a path $T_A, T_{X_1}, \dots, T_{X_n}, T_B$ with at least one intermediary node $T_{X_i}$.
 
-Figure \ref{fig:tod_candidate_dependency} shows an example dependency graph, where transaction $A$ influences both $X$ and $B$ and $B$ is influenced by all other transactions. We would filter out the candidate $(A, B)$ as there is a path going over $X$, but keep $(X, B)$ and $(C, B)$.
-
-For soundness, we would want to apply this filter first: If another filter removes a TOD candidate, the information about this dependency is removed from the dependency graph, and we could miss potential indirect dependencies. However, because of transaction fees, there would be a dependency between every transaction of the same block, and we have an indirect dependency between nearly all transactions of a block. This dependency could only be a problem, if a transaction actually uses the balance value of the miner. We neglect this case, and filter out block producer dependencies first.
+Figure \ref{fig:tod_candidate_dependency} shows an example dependency graph, where transaction $A$ influences both $X$ and $B$ and $B$ is influenced by all other transactions. We would filter out the candidate $(A, B)$ as there is a path $A \rightarrow X \rightarrow B$, but keep $(X, B)$ and $(C, B)$.
 
 \begin{figure}[h]
     \centering
@@ -805,17 +808,9 @@ For soundness, we would want to apply this filter first: If another filter remov
 
 \subsubsection{Same sender}
 
-If the sender of both transactions is the same, they would have attacked themselves.
+If the sender of both transactions is the same, the victim would have frontrun themselves.
 
 To remove these TOD candidates, we use the information from the \verb|eth_getBlockByNumber| RPC method and compare the sender fields for $T_A$ and $T_B$.
-
-\subsubsection{EOA nonce}
-
-% TODO: not exactly true / not argued well enough. What if 2nd transaction accesses EOA nonce? I guess not possible, be explicit about that
-
-The nonce of an externally owned account is only increased when they send a transaction. As such, a collision on EOA nonces can only occur if both transactions are from the same sender. However, when using the state accesses and modifications from \verb|debug_traceBlockByNumber|, it also marks the nonce of EOA accounts as accessed, even if only the balance was accessed.
-
-To exclude these cases, where the nonce is wrongly included in the accessed fields, we remove nonce accesses for EOA addresses.
 
 \subsubsection{Recipient Ether transfer}
 
@@ -823,27 +818,30 @@ If a transaction sends Ether without execution code, it only depends on the bala
 
 When a transaction executes code, the trace will show this code access. Thus, we can exclude TOD candidates, where $T_B$ has no code access.
 
-% TODO: extend this also to sender ether transfers. It's probably the same argument
-% The receiver of an eth transfer without code exection must be EOA
-% However, the 2nd transaction *could* read the balance of this EOA
-% and thus be impacted by the 1st transfer -> could filter with an opcode tracer
+\subsection{Token filtering}
+
+\todo{Consider filtering out TOD candidates related to tokens, e.g. by checking if a standardized token Log was emitted during transaction execution.}
 
 \subsection{Deduplication}
 
-We want a diverse set of attacks for the benchmark, so we filter out similar attacks to the ones we already analyzed. For instance, it does not make sense to analyze 5000 attacks for the USDT Stablecoin, as these will mostly collide.
+\todo{Consider implementing deduplication, i.e. filtering out similar TOD candidates.}
 
-If possible, we don't need the traces analyzer for deduplication. For instance, maybe we can get all the necessary information from the default RPC tracers.
-Alternatively, we could also download all necessary data, and then loop through the traces analyzer and only pick the relevant (deduplicated) potential attacks.
+\iffalse
+    We want a diverse set of attacks for the benchmark, so we filter out similar attacks to the ones we already analyzed. For instance, it does not make sense to analyze 5000 attacks for the USDT Stablecoin, as these will mostly collide.
 
-Ideas, potentially a mixture of those:
+    If possible, we don't need the traces analyzer for deduplication. For instance, maybe we can get all the necessary information from the default RPC tracers.
+    Alternatively, we could also download all necessary data, and then loop through the traces analyzer and only pick the relevant (deduplicated) potential attacks.
 
-\begin{enumerate}
-    \item only trace some attacks per contract
-    \item only trace some attacks per function
-    \item only trace some attacks per group of vulnerable contracts (as defined by analysis)
-    \item only trace some attacks per contract/function skeletons
-    \item similar to \cite{}, analyze at how many attacks per contract/function the number of found attacks saturate (based on the analysis result)
-\end{enumerate}
+    Ideas, potentially a mixture of those:
+
+    \begin{enumerate}
+        \item only trace some attacks per contract
+        \item only trace some attacks per function
+        \item only trace some attacks per group of vulnerable contracts (as defined by analysis)
+        \item only trace some attacks per contract/function skeletons
+        \item similar to \cite{}, analyze at how many attacks per contract/function the number of found attacks saturate (based on the analysis result)
+    \end{enumerate}
+\fi
 
 \chapter{Trace analysis}
 
