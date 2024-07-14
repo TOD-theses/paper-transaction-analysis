@@ -301,11 +301,61 @@ A different approach, the Proposer-Builder Separation (PBS) has become more popu
 
 \section{Transaction execution}
 
-In Ethereum, transaction execution is deterministic: If the transaction is executed in a specific block environment and world state, it will always produce the same result. The result is used to update the world state, which we model as a function $\Pi(T, B, \sigma) = \sigma\prime$, where $T$ is the transaction, $B$ is the block and $\sigma$ is the world state.
+In Ethereum, transaction execution is deterministic: If the transaction is executed in a specific block environment and world state, it will always produce the same result\todo{Reference}. The result is used to update the world state.
 
-In this paper, we are interested in the effects of the transaction order. If we reorder transactions across multiple blocks, they would execute in a different block environment than they did originally. The effects of block environments are already covered in several other vulnerability definitions\todo{Reference}. Thus, we will exclude the possibility of changing block environments and assume that transactions are always executed in their original block environment. As such, we can think of the transaction execution as $\Pi(T, \sigma) = \sigma\prime$.
+In this paper, we are interested in the effects of the transaction order. If we reorder transactions across multiple blocks, they would execute in a different block environment than they did originally. The effects of different block environments are already covered in several other vulnerability definitions\todo{Reference}. In this work, we will exclude the possibility of changing block environments and assume that transactions are always executed in their original block environment.
 
-We denote a transaction execution as $\sigma \xrightarrow{T} \sigma\prime$ in the following. Furthermore, we denote the change between $\sigma$ and $\sigma\prime$ as $\Delta_T\sigma$.
+We denote a transaction execution as $\sigma \xrightarrow{T} \sigma\prime$, implicitly letting the block environment correspond to the transaction's block. Furthermore, we denote the \emph{state diff} done by a transaction $T$ as $\Delta_T$, with $prestate(\Delta_T) = \sigma$ being the state before execution and $poststate(\Delta\sigma_T) = \sigma\prime$ the state after the execution of $T$.
+
+We define $\sigma + \Delta_T$ to be equal to the state $\sigma$, except that every state that was changed by the execution of $T$ is overwritten with the value in $poststate(\Delta_T)$. Similarly, $\sigma - \Delta_T$ is equal to the state $\sigma$, except that every state that was changed by the execution of $T$ is overwritten with the value in $prestate(\Delta_T)$. Formally, these definitions are as follows:
+
+\begin{align*}
+    (\sigma + \Delta_T)(a)_n    & =
+    \begin{cases}
+        \sigma(a)_n,              & prestate(\Delta_T)(a)_n = poststate(\Delta_T)(a)_n \\
+        poststate(\Delta_T)(a)_n, & \text{otherwise}
+    \end{cases}          \\
+    (\sigma + \Delta_T)(a)_b    & =
+    \begin{cases}
+        \sigma(a)_b,              & prestate(\Delta_T)(a)_b = poststate(\Delta_T)(a)_b \\
+        poststate(\Delta_T)(a)_b, & \text{otherwise}
+    \end{cases}          \\
+    (\sigma + \Delta_T)(a)_c    & =
+    \begin{cases}
+        \sigma(a)_c,              & prestate(\Delta_T)(a)_c = poststate(\Delta_T)(a)_c \\
+        poststate(\Delta_T)(a)_c, & \text{otherwise}
+    \end{cases}          \\
+    (\sigma + \Delta_T)(a)_s[k] & =
+    \begin{cases}
+        \sigma(a)_s[k],              & prestate(\Delta_T)(a)_s[k] = poststate(\Delta_T)(a)_s[k] \\
+        poststate(\Delta_T)(a)_s[k], & \text{otherwise}
+    \end{cases} \\
+\end{align*}
+
+\begin{align*}
+    (\sigma - \Delta_T)(a)_n    & =
+    \begin{cases}
+        \sigma(a)_n,             & prestate(\Delta_T)(a)_n = poststate(\Delta_T)(a)_n \\
+        prestate(\Delta_T)(a)_n, & \text{otherwise}
+    \end{cases}          \\
+    (\sigma - \Delta_T)(a)_b    & =
+    \begin{cases}
+        \sigma(a)_b,             & prestate(\Delta_T)(a)_b = poststate(\Delta_T)(a)_b \\
+        prestate(\Delta_T)(a)_b, & \text{otherwise}
+    \end{cases}          \\
+    (\sigma - \Delta_T)(a)_c    & =
+    \begin{cases}
+        \sigma(a)_c,             & prestate(\Delta_T)(a)_c = poststate(\Delta_T)(a)_c \\
+        prestate(\Delta_T)(a)_c, & \text{otherwise}
+    \end{cases}          \\
+    (\sigma - \Delta_T)(a)_s[k] & =
+    \begin{cases}
+        \sigma(a)_s[k],             & prestate(\Delta_T)(a)_s[k] = poststate(\Delta_T)(a)_s[k] \\
+        prestate(\Delta_T)(a)_s[k], & \text{otherwise}
+    \end{cases} \\
+\end{align*}
+
+For instance, if transaction $T$ changed the storage slot 1234 at address 0xabcd from 0 to 100, then $(\sigma + \Delta_T)(\text{0xabcd})_s[1234] = 100$ and $(\sigma - \Delta_T)(\text{0xabcd})_s[1234] = 0$. For all other storage slots we have $(\sigma + \Delta_T)(a)_s[k] = \sigma(a)_s[k] = (\sigma - \Delta_T)(a)_s[k]$.
 
 \section{Nodes}
 
@@ -430,7 +480,7 @@ The initial state used to execute the first transaction is \verb|ar.State|, whic
 
 \subsubsection{Analysis of \cite{torres_frontrunner_2021}}
 
-The emulator is initialized with the block \verb|front_runner["blockNumber"]-1|. They do not modify the emulator before executing the transactions, thus $\sigma$ must directly be derived from the block and is the state after executing a whole block. Also, $\sigma$ likely does not include the state changes by $T_A$ and $T_V$, in which case executing $T_A$ on top of $\sigma$ would not make sense. As $\sigma$ does not include the changes by $T_A$ it also does not include the changes of any other transaction in this block.
+The emulator is initialized with the block \verb|front_runner["blockNumber"]-1|. They do not modify the emulator before executing the transactions, thus $\sigma$ must directly be derived from the block and is the state after executing a whole block. As the emulator does not include state changes from a subset of transactions from a block, it also does not include any transaction that was executed before $T_A$ in the same block.
 
 Similar to the block environment, this could lead to differences in the emulation and the results from the blockchain, if $T_A$ or $T_V$ is impacted by a previous transaction in the same block.
 
@@ -442,21 +492,21 @@ Consider following sequence of transactions, with $\sigma$ being the world state
 
 $$\sigma \xrightarrow{T_A} \sigma_A \xrightarrow{T_{X_1}} \dots \xrightarrow{T_{X_n}} \sigma_{X_n} \xrightarrow{T_B} \sigma_B$$\todo{Should we restate it, to compare state diffs rather than states?}
 
-Let $\Delta_A\sigma$ and $\Delta_B\sigma$ be the corresponding state changes from executing $T_A$ and $T_B$, and let all transactions be executed in the block environment of their block.
+Let $\Delta_{T_A}$ and $\Delta_{T_B}$ be the corresponding state changes from executing $T_A$ and $T_B$, and let all transactions be executed in the block environment of their block.
 
 We say, that $(T_A, T_B)$ is TOD if and only if:
 
-$$(\sigma_{X_n} - \Delta_A\sigma) \xrightarrow{T_B} \sigma_B\prime\text{ and }\sigma_B \neq \sigma_B\prime$$
+$$(\sigma_{X_n} - \Delta_{T_A}) \xrightarrow{T_B} \sigma_B\prime\text{ and }\sigma_B \neq \sigma_B\prime$$
 
-Intuitively, if we take the world state exactly before $T_B$ was executed, namely $\sigma_{X_n}$. We then compare if we get a different result when executing $T_B$ directly on $\sigma_{X_n}$ and when removing the state changes by $T_A$ and execute $T_B$ on $\sigma_{X_n} - \Delta_A\sigma$. If we get a different result, we say that $(T_A, T_B)$ is TOD.
+Intuitively, if we take the world state exactly before $T_B$ was executed, namely $\sigma_{X_n}$. We then compare if we get a different result when executing $T_B$ directly on $\sigma_{X_n}$ and when removing the state changes by $T_A$ and execute $T_B$ on $\sigma_{X_n} - \Delta_{T_A}$. If we get a different result, we say that $(T_A, T_B)$ is TOD.
 
-Note, that we only define TOD for the case that $T_A$ impacts $T_B$, but not the other way round. We ignore the case that $T_B$ impacts $T_A$, as we focus on detecting frontrunning attacks, in which the attacker tries to execute a transaction prior to some transaction $T$ and impact the behaviour of $T$ with this. To define TOD in both directions, one may extend the definition with $(\sigma + \Delta_B\sigma\prime) \xrightarrow{T_A} \sigma_A\prime$ and $\sigma_A \neq \sigma_A\prime$, where $\Delta_B\sigma\prime$ is the state change corresponding to executing $T_B$ on $\sigma_{X_n} - \Delta_A\sigma$.
+Note, that we only define TOD for the case that $T_A$ impacts $T_B$, but not the other way round. We ignore the case that $T_B$ impacts $T_A$, as we focus on detecting frontrunning attacks, in which the attacker tries to execute a transaction prior to some transaction $T$ and impact the behaviour of $T$ with this. To define TOD in both directions, one may extend the definition with $(\sigma + \Delta_{T_B\prime}) \xrightarrow{T_A} \sigma_A\prime$ and $\sigma_A \neq \sigma_A\prime$, where $\Delta_{T_B\prime}$ is the state change corresponding to executing $T_B$ on $\sigma_{X_n} - \Delta_{T_A}$.
 
 \subsection{Definition strengths}
 
 \subsubsection{Performance}
 
-To check if two transactions $T_A$ and $T_B$ are TOD, we only need the state change $\Delta_A\sigma$ and the state $\sigma_{X_n}$. These are enough to execute the normal and reverse order. In total, we would only have two transaction executions, despite including the impact of arbitrary many intermediary transactions.
+To check if two transactions $T_A$ and $T_B$ are TOD, we only need the state change $\Delta_{T_A}$ and the state $\sigma_{X_n}$. These are enough to execute the normal and reverse order. In total, we would only have two transaction executions, despite including the impact of arbitrary many intermediary transactions.
 
 If we want to check n transactions for TOD, we would need $n$ transaction executions to obtain the state changes and resulting states by each transaction. If we wanted to test all possible transaction pairs, we would additionally need $\frac{n^2 - n}{2}$ more executions to obtain the execution results of the reverse order, leading to a total of $\frac{n^2 + n}{2}$ transaction executions. Similar to \cite{torres_frontrunner_2021} and \cite{zhang_combatting_2023}, we can filter irrelevant transactions pairs to be faster.
 
@@ -472,7 +522,7 @@ The intuitive idea of our definition is, to compare $T_A \rightarrow T_{X_i} \ri
 
 \subsubsection{Undoing state changes of intermediary transactions}
 
-When we analyze a TOD for $(T_A, T_B)$, applying $\sigma_{X_n} - \Delta_A\sigma$ could lead to an unrealistic state if $T_A$ modifies the same state keys as some intermediary transaction $T_X$.
+When we analyze a TOD for $(T_A, T_B)$, applying $\sigma_{X_n} - \Delta_{T_A}$ could lead to an unrealistic state if $T_A$ modifies the same state keys as some intermediary transaction $T_X$.
 
 For instance, consider the three transactions $T_A$, $T_X$ and $T_B$:
 
@@ -484,7 +534,7 @@ For instance, consider the three transactions $T_A$, $T_X$ and $T_B$:
 
 If we start with a state $\sigma$ where both $a$ and $x$ have 5 Ether and all other accounts have 0, then executing all three transactions would result in the state $\sigma(y)_b = 5 eth$. If we think about the case where $T_A$ would not be executed, i.e. the reverse order, we would get the same result.
 
-However, when we compute $(\sigma_{X_n} - \Delta_A\sigma)$ we would overwrite the balance of $b$ in $\sigma_{X_n}$ and set it to 0. Undoing the changes of $T_A$ inadvertently also undoes the changes by $T_X$. If we execute $T_B$ on the resulting state, it would fail.
+However, when we compute $(\sigma_{X_n} - \Delta_{T_A})$ we would overwrite the balance of $b$ in $\sigma_{X_n}$ and set it to 0. Undoing the changes of $T_A$ inadvertently also undoes the changes by $T_X$. If we execute $T_B$ on the resulting state, it would fail.
 
 \subsubsection{Indirect dependencies}
 
@@ -494,7 +544,7 @@ Consider the same scenario as before, except that now $T_A$ sends the 5 Ether to
 
 In the normal scenario, $a$ would send $x$ 5 Ether ($T_A$), $x$ would forward 5 Ether to $b$ ($T_X$) and finally $b$ would forward these to $y$. If $T_A$ would not exist, then $T_X$ and $T_B$ would both fail because of insufficient funds.
 
-However, when we compute $(\sigma_{X_n} - \Delta_A\sigma)$ we would \emph{not} overwrite the balance of $b$ in $\sigma_{X_n}$, as $T_A$ did not modify this balance. Thus, $T_B$ would succeed.
+However, when we compute $(\sigma_{X_n} - \Delta_{T_A})$ we would \emph{not} overwrite the balance of $b$ in $\sigma_{X_n}$, as $T_A$ did not modify this balance. Thus, $T_B$ would succeed.
 
 \begin{enumerate}
     \item $T_A$: sender $a$ transfers 5 Ether to address $b$.
@@ -502,7 +552,7 @@ However, when we compute $(\sigma_{X_n} - \Delta_A\sigma)$ we would \emph{not} o
     \item $T_B$: sender $b$ transfers 5 Ether to address $y$.
 \end{enumerate}
 
-When we analyze a TOD for $(T_A, T_B)$, applying $\sigma_{X_n} - \Delta_A\sigma$ could lead to an unrealistic state if $T_A$ modifies the same state keys as some intermediary transaction $T_X$.
+When we analyze a TOD for $(T_A, T_B)$, applying $\sigma_{X_n} - \Delta_{T_A}$ could lead to an unrealistic state if $T_A$ modifies the same state keys as some intermediary transaction $T_X$.
 
 
 \section{TOD old}
