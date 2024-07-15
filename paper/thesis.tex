@@ -257,7 +257,14 @@ Similar to \cite{wood_ethereum_2024}, we will refer to the shared state as \emph
     \item \emph{code}: For contract accounts, the code is a sequence of EVM instructions.
 \end{itemize}
 
-We denote the world state as $\sigma$, the account state of an address $a$ as $\sigma(a)$ and the nonce, balance, storage and code as $\sigma(a)_n$, $\sigma(a)_b$, $\sigma(a)_s$ and $\sigma(a)_c$ respectively. For the value at a storage slot $k$ we write $\sigma(a)_s[k]$.
+We denote the world state as $\sigma$, the account state of an address $a$ as $\sigma(a)$ and the nonce, balance, storage and code as $\sigma(a)_n$, $\sigma(a)_b$, $\sigma(a)_s$ and $\sigma(a)_c$ respectively. For the value at a storage slot $k$ we write $\sigma(a)_s[k]$. We will also an alternative notation $\sigma(K)$ to denote the state value at some state key $K$. Following notations will be used:
+
+\begin{align*}
+    \sigma(a)_n    & = \sigma(("nonce", a))      \\
+    \sigma(a)_b    & = \sigma(("balance", a))    \\
+    \sigma(a)_c    & = \sigma(("code", a))       \\
+    \sigma(a)_s[k] & = \sigma(("storage", a, k)) \\
+\end{align*}
 
 \section{EVM}
 
@@ -312,52 +319,32 @@ We denote a transaction execution as $\sigma \xrightarrow{T} \sigma\prime$, impl
 
 For two state changes $\Delta_{T_A}$ and $\Delta_{T_B}$, we say that $\Delta_{T_A} = \Delta_{T_B}$ if they changed the same set of state fields and the pre- and poststate for these changed fields is equal. Otherwise, we say $\Delta_{T_A} \neq \Delta_{T_B}$. For instance, if both $\Delta_{T_A}$ and $\Delta_{T_B}$ modified only the storage $\sigma(a)_s[k]$, and both changed it from the value $x$ to the value $y$, we would call them equal. If $\Delta_{T_B}$ changed it from $x\prime$ to $y$, or from $x$ to $y\prime$ or even modified a different storage slot $\sigma(a)_s[k\prime]$, we would say $\Delta_{T_A} \neq \Delta_{T_B}$.
 
+We define the set of changed state keys as:
+
+$$changed\_keys(\Delta) \coloneqq \{ K | prestate(\Delta)(K) \neq poststate(\Delta)(K) \}$$
+
+We let the equality $\Delta_{T_A} = \Delta_{T_B}$ be true if following holds, else $\Delta_{T_A} \neq \Delta_{T_B}$:
+
+\begin{align*}
+    changed\_keys(\Delta_{T_A})       & = changed\_keys(\Delta_{T_B})                           \\
+    \forall K \in changed\_keys\colon &
+    prestate(\Delta_{T_A})(K) = prestate(\Delta_{T_B})(K)                                       \\
+    \text{ and }                      & poststate(\Delta_{T_B})(K) = poststate(\Delta_{T_B})(K)
+\end{align*}
+
 We define $\sigma + \Delta_T$ to be equal to the state $\sigma$, except that every state that was changed by the execution of $T$ is overwritten with the value in $poststate(\Delta_T)$. Similarly, $\sigma - \Delta_T$ is equal to the state $\sigma$, except that every state that was changed by the execution of $T$ is overwritten with the value in $prestate(\Delta_T)$. Formally, these definitions are as follows:
 
 \begin{align*}
-    (\sigma + \Delta_T)(a)_n    & =
+    (\sigma + \Delta_T)(K) & \coloneqq
     \begin{cases}
-        \sigma(a)_n,              & prestate(\Delta_T)(a)_n = poststate(\Delta_T)(a)_n \\
-        poststate(\Delta_T)(a)_n, & \text{otherwise}
-    \end{cases}          \\
-    (\sigma + \Delta_T)(a)_b    & =
-    \begin{cases}
-        \sigma(a)_b,              & prestate(\Delta_T)(a)_b = poststate(\Delta_T)(a)_b \\
-        poststate(\Delta_T)(a)_b, & \text{otherwise}
-    \end{cases}          \\
-    (\sigma + \Delta_T)(a)_c    & =
-    \begin{cases}
-        \sigma(a)_c,              & prestate(\Delta_T)(a)_c = poststate(\Delta_T)(a)_c \\
-        poststate(\Delta_T)(a)_c, & \text{otherwise}
-    \end{cases}          \\
-    (\sigma + \Delta_T)(a)_s[k] & =
-    \begin{cases}
-        \sigma(a)_s[k],              & prestate(\Delta_T)(a)_s[k] = poststate(\Delta_T)(a)_s[k] \\
-        poststate(\Delta_T)(a)_s[k], & \text{otherwise}
+        poststate(\Delta_T)(K), & K \in changed\_keys(\Delta_T) \\
+        \sigma(K),              & \text{otherwise}
     \end{cases} \\
-\end{align*}
-
-\begin{align*}
-    (\sigma - \Delta_T)(a)_n    & =
+    (\sigma - \Delta_T)(K) & \coloneqq
     \begin{cases}
-        \sigma(a)_n,             & prestate(\Delta_T)(a)_n = poststate(\Delta_T)(a)_n \\
-        prestate(\Delta_T)(a)_n, & \text{otherwise}
-    \end{cases}          \\
-    (\sigma - \Delta_T)(a)_b    & =
-    \begin{cases}
-        \sigma(a)_b,             & prestate(\Delta_T)(a)_b = poststate(\Delta_T)(a)_b \\
-        prestate(\Delta_T)(a)_b, & \text{otherwise}
-    \end{cases}          \\
-    (\sigma - \Delta_T)(a)_c    & =
-    \begin{cases}
-        \sigma(a)_c,             & prestate(\Delta_T)(a)_c = poststate(\Delta_T)(a)_c \\
-        prestate(\Delta_T)(a)_c, & \text{otherwise}
-    \end{cases}          \\
-    (\sigma - \Delta_T)(a)_s[k] & =
-    \begin{cases}
-        \sigma(a)_s[k],             & prestate(\Delta_T)(a)_s[k] = poststate(\Delta_T)(a)_s[k] \\
-        prestate(\Delta_T)(a)_s[k], & \text{otherwise}
-    \end{cases} \\
+        prestate(\Delta_T)(K), & K \in changed\_keys(\Delta_T) \\
+        \sigma(K),             & \text{otherwise}
+    \end{cases}
 \end{align*}
 
 For instance, if transaction $T$ changed the storage slot 1234 at address 0xabcd from 0 to 100, then $(\sigma + \Delta_T)(\text{0xabcd})_s[1234] = 100$ and $(\sigma - \Delta_T)(\text{0xabcd})_s[1234] = 0$. For all other storage slots we have $(\sigma + \Delta_T)(a)_s[k] = \sigma(a)_s[k] = (\sigma - \Delta_T)(a)_s[k]$.
@@ -568,7 +555,7 @@ When we analyze a TOD for $(T_A, T_B)$, applying $\sigma_{X_n} - \Delta_{T_A}$ c
 
 \section{State collisions}
 
-Transactions are influenced by the world state and can also modify it. We denote the state accesses by a transaction $T$ as $R_T$, and the state modifications as $W_T$. Both are defined as a tuple $(balances, codes, nonces, storage\ slots)$, where $balances$, $codes$ and $nonces$ are sets of addresses and $storage\ slots$ is a set of $(address, key)$ pairs.
+We denote state accesses by a transaction $T$ as a set of state keys $R_T = \{ K_1, \dots, K_n \}$ and state modifications as $W_T = \{ K_1, \dots, K_m \}$.
 
 We define the state collisions of two transactions as:
 
@@ -761,9 +748,13 @@ We go through each filter in table \ref{tab:tod_candidate_filters} and filter ou
 
 \subsubsection{Same-value collisions}
 
-When we have many transactions that modify the same state, e.g. the balance of the same account, they will all have a write-write conflict with each other. The number of TOD candidates grows quadratic with the number of transactions modifying the same state. For instance, if 100 transactions modify the balance of address $a$, the first transaction would have a write-write conflict with all other 99 transactions, the second transaction with the remaining 98 transactions, etc., leading to a total of $\frac{n^2-n}{2}$ write-write conflicts and TOD candidates.
+When we have many transactions that modify the same state, e.g. the balance of the same account, they will all have a write-write conflict with each other. The number of TOD candidates grows quadratic with the number of transactions modifying the same state. For instance, if 100 transactions modify the balance of address $a$, the first transaction would have a write-write conflict with all other 99 transactions, the second transaction with the remaining 98 transactions, etc., leading to a total of $\frac{n^2-n}{2} = 4950$ TOD candidates.
 
-To reduce this growth of TOD candidates, we also require for a collision, that $T_A$ writes exactly the value that is read or overwritten by $T_B$. With the example of 100 transactions modifying the balance of address $a$, when the first transaction sets to balance to 1234, it would only have a write-write conflict with transactions where the balance of $a$ was exactly 1234 before the execution. If all transactions wrote different balances, then the first transaction would have write-write conflict with the second transaction, the second transaction with the third, etc., leading to a total of $99$ write-write conflicts and TOD candidates.
+To reduce this growth of TOD candidates, we also require for a collision, that $T_A$ writes exactly the value that is read or overwritten by $T_B$. Formally, following must hold to pass this filter:
+
+$$\forall K \in collisions(T_A, T_B)\colon poststate(\Delta_{T_A})(K) = prestate(\Delta_{T_B})(K)$$
+
+With the example of 100 transactions modifying the balance of address $a$, when the first transaction sets to balance to 1234, it would only have a write-write conflict with transactions where the balance of $a$ was exactly 1234 before the execution. If all transactions wrote different balances, this would reduce the amount of TOD candidates to $n-1 = 99$.
 
 \subsubsection{Nonce and Code collisions}
 
