@@ -709,7 +709,7 @@ We make use of the RPC method \verb|debug_traceBlockByNumber|, which allows repl
 
 By inspecting the source code from the tracers for Reth\cite{noauthor_paradigmxyzrevm-inspectors_2024} and results from the RPC call, we found out, that without \verb|diffMode| it always includes the account's balance, nonce and code (for contract accounts), even if only one of them was touched. Therefore, it is not precise on what exactly was touched, which can be a source of false positives for collisions. Similarly, with \verb|diffMode| enabled, each account in \verb|pre| also contains the account's balance, nonce and code (for contract accounts), even if only one of the fields was modified\footnote{I opened a \href{https://github.com/ethereum/go-ethereum/pull/30081}{pull request} to clarify this behaviour and now this is also reflected in the documentation\cite{noauthor_built-tracers_2024}.}, however, by using \verb|post| we can understand which of those fields have actually been modified.
 
-We store all the accesses and modifications in a database and then query it for write-read\todo{And write-write} collisions to obtain a preliminary set of TOD candidates.
+We store all the accesses and modifications in a database and then query it for write-read and write-write collisions to obtain a preliminary set of TOD candidates.
 
 \todo{Figure on unique transactions in TOD candidates}
 
@@ -733,11 +733,11 @@ We go through each filter in table \ref{tab:tod_candidate_filters} and filter ou
             \hline
             \thead{Filter name}      & \thead{Description of filter criteria}                                  \\ \hline
             Same-value collision     & \makecell[l]{Only take collisions where $T_A$ writes exactly the value, \\that is read or overwritten by $T_B$.} \\ \hline
-            Nonce and code collision & Drop nonce and code collisions.                                         \\ \hline
             Block windows            & Drop transactions that are 25 or more blocks apart.                     \\ \hline
-            Indirect dependency      & \makecell[l]{Drop TOD candidates with an indirect dependency.           \\e.g. if TOD candidates $(T_A, T_X)$ and $(T_X, T_B)$ exist.} \\ \hline
             Block producers          & Drop collisions on the block producer's balance.                        \\ \hline
-            Same sender              & Drop if $T_A$ and $T_B$ are from the same sender.                       \\ \hline
+            Nonce and code collision & Drop nonce and code collisions.                                         \\ \hline
+            Indirect dependency      & \makecell[l]{Drop TOD candidates with an indirect dependency.           \\e.g. if TOD candidates $(T_A, T_X)$ and $(T_X, T_B)$ exist.} \\ \hline
+            Same senders             & Drop if $T_A$ and $T_B$ are from the same sender.                       \\ \hline
             Recipient Ether transfer & Drop if $T_B$ does not execute code.                                    \\ \hline
         \end{tabular}
         \caption[TOD candidate filters]{TOD candidate filters sorted by usage order. When a filter describes the removal of collisions, the TOD candidates will be updated accordingly.}
@@ -810,7 +810,7 @@ Figure \ref{fig:tod_candidate_dependency} shows an example dependency graph, whe
 
 If the sender of both transactions is the same, the victim would have frontrun themselves.
 
-To remove these TOD candidates, we use the information from the \verb|eth_getBlockByNumber| RPC method and compare the sender fields for $T_A$ and $T_B$.
+To remove these TOD candidates, we use the \verb|eth_getBlockByNumber| RPC method and compare the sender fields for $T_A$ and $T_B$.
 
 \subsubsection{Recipient Ether transfer}
 
@@ -822,9 +822,61 @@ When a transaction executes code, the trace will show this code access. Thus, we
 
 \todo{Consider filtering out TOD candidates related to tokens, e.g. by checking if a standardized token Log was emitted during transaction execution.}
 
-\subsection{Deduplication}
+\section{Experiment}
 
-\todo{Consider implementing deduplication, i.e. filtering out similar TOD candidates.}
+In this section, we discuss the results of applying the TOD candidate mining methodology on a randomly sampled sequence of 100 blocks (see chapter \ref{cha:reproducibility} for the sampling procedure).
+
+\subsection{Setup}
+
+We used a public archive node\cite{noauthor_pokt_2024} with an initially empty local cache for the RPC calls.\todo{Write down the setup of OS, processor, RAM, disk, etc.}
+
+\subsection{Results}
+
+We mined the blocks from block 19830547 up to block 19830647, containing a total of 16799 transactions.
+
+\subsubsection{Performance}
+
+The mining process took a total of 502 seconds, with 311 seconds being used to fetch the data via the RPC calls, 6 seconds being used to find collisions, 17 seconds for filtering the TOD candidates and 168 seconds for preparing statistics. When we exclude the statistics, as they are not used for TOD candidate finding, it took an average of 3.34 seconds per block.
+
+\subsubsection{Filters}
+
+In table \ref{tab:experiment_filters} we can see the number of TOD candidates before and after each filter, showing how many candidates were filtered at each stage. This shows the importance of filtering, as we reduced the number of TOD candidates to analyze from more than 60 millions to only 8,127.
+
+Note, that this does not directly imply, that "Same-value collision" filters out more TOD candidates than "Block windows", as they operated on different sets of TOD candidates. Even if "Block windows" would filter out every TOD candidate, this would be less than "Same-value collision" did, because of the order of filter applicatoin.
+
+\begin{table}[h]
+    \begin{center}
+        \begin{tabular}{ | l | l | l | }
+            \hline
+            \thead{Filter name}      & \thead{TOD candidates after filtering} & \thead{Filtered TOD candidates} \\ \hline
+            (unfiltered)             & 63178557                               &                                 \\ \hline
+            Same-value collision     & 56663                                  & 63121894                        \\ \hline
+            Block windows            & 53184                                  & 3479                            \\ \hline
+            Block producers          & 39899                                  & 13285                           \\ \hline
+            Nonce collision          & 23284                                  & 16615                           \\ \hline
+            Code collision           & 23265                                  & 19                              \\ \hline
+            Indirect dependency      & 16235                                  & 7030                            \\ \hline
+            Same senders             & 9940                                   & 6295                            \\ \hline
+            Recipient Ether transfer & 8127                                   & 1813                            \\ \hline
+        \end{tabular}
+        \caption[Filtered TOD candidates]{This table shows the application of all filters used to reduce the number of TOD candidates. Filters were applied from top to bottom and each row shows how many TOD candidates remained and were filtered.}
+        \label{tab:experiment_filters}
+    \end{center}
+\end{table}
+
+\subsubsection{Transactions}
+
+After applying the filters, 7864 transactions are part of at least one TOD candidate. Therefore, 46.8\% of all transactions are marked as potentially TOD with some other transaction and require further analysis.
+
+\subsubsection{Collisions}
+
+There remain 8818 storage collisions and 5654 balance collisions. These collisions occur in only 1472 different account states. When we analyze, how often each account is part of a collision, we see that collisions are highly concentrated around a small set of accounts: The five accounts with the most collisions are all token accounts\footnote{The tokens are: \href{https://etherscan.io/address/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2}{WETH}, \href{https://etherscan.io/address/0x97a9a15168c22b3c137e6381037e1499c8ad0978}{DOP}, \href{https://etherscan.io/address/0xdac17f958d2ee523a2206206994597c13d831ec7}{USDT}, \href{https://etherscan.io/address/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48}{USDC} and \href{https://etherscan.io/address/0xf938346d7117534222b48d09325a6b8162b3a9e7}{CHOPPY}} and are responsible for 43.0\% of all collisions.
+
+Our goal is a diverse set of attacks for our benchmark. Having such a strong imbalance towards a few contracts, will take a long time to analyze these TOD candidates while likely yielding only a few types of attacks. To prevent this, we may filter out duplicate addresses for collisions.
+
+\section{Deduplication}
+
+\todo{Consider implementing deduplication, i.e. filtering out collisions at the same address.}
 
 \iffalse
     We want a diverse set of attacks for the benchmark, so we filter out similar attacks to the ones we already analyzed. For instance, it does not make sense to analyze 5000 attacks for the USDT Stablecoin, as these will mostly collide.
@@ -853,7 +905,7 @@ When a transaction executes code, the trace will show this code access. Thus, we
 
 \subsection{Algorithm}
 
-Lets say, we have a transaction $T_A$ and a $T_B$, where $T_A$ occurred in block $Block_A$ and $T_B$ occurred in $Block_B$ (which may be equal to $Block_A$). Further, $T_A$ occurred before $T_B$, denoted as $T_A \rightarrow T_B$.
+Let's say, we have a transaction $T_A$ and a $T_B$, where $T_A$ occurred in block $Block_A$ and $T_B$ occurred in $Block_B$ (which may be equal to $Block_A$). Further, $T_A$ occurred before $T_B$, denoted as $T_A \rightarrow T_B$.
 
 We want to replay following scenarios:
 
@@ -918,6 +970,15 @@ Findings of the TOD attack mining and analysis.
 \section{Setup}
 
 \section{Result}
+
+\chapter{Data availability}
+
+TBD.
+
+\chapter{Reproducibility}
+\label{cha:reproducibility}
+
+TBD.
 
 
 
