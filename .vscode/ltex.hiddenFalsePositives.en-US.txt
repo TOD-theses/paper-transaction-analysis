@@ -24,3 +24,4 @@
 {"rule":"WHITESPACE_RULE","sentence":"^\\QMonika di Angelo  female\\E$"}
 {"rule":"WHITESPACE_RULE","sentence":"^\\Qmale Ass.\\E$"}
 {"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qmale Ass.\\E$"}
+{"rule":"A_INFINITIVE","sentence":"^\\QWe know that \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q must have written to some state, if the prestate of the state changes is diferent for \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q and \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q.\\E$"}

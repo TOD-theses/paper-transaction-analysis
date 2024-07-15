@@ -31,7 +31,8 @@
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta}
 
-\newtheorem{theorem}{Theorem}[section]
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
 
 % Define convenience functions to use the author name and the thesis title in the PDF document properties.
 \newcommand{\authorname}{Othmar Lechner} % The author name without titles.
@@ -309,6 +310,8 @@ In this paper, we are interested in the effects of the transaction order. If we 
 
 We denote a transaction execution as $\sigma \xrightarrow{T} \sigma\prime$, implicitly letting the block environment correspond to the transaction's block. Furthermore, we denote the \emph{state diff} done by a transaction $T$ as $\Delta_T$, with $prestate(\Delta_T) = \sigma$ being the state before execution and $poststate(\Delta\sigma_T) = \sigma\prime$ the state after the execution of $T$.
 
+For two state changes $\Delta_{T_A}$ and $\Delta_{T_B}$, we say that $\Delta_{T_A} = \Delta_{T_B}$ if they changed the same set of state fields and the pre- and poststate for these changed fields is equal. Otherwise, we say $\Delta_{T_A} \neq \Delta_{T_B}$. For instance, if both $\Delta_{T_A}$ and $\Delta_{T_B}$ modified only the storage $\sigma(a)_s[k]$, and both changed it from the value $x$ to the value $y$, we would call them equal. If $\Delta_{T_B}$ changed it from $x\prime$ to $y$, or from $x$ to $y\prime$ or even modified a different storage slot $\sigma(a)_s[k\prime]$, we would say $\Delta_{T_A} \neq \Delta_{T_B}$.
+
 We define $\sigma + \Delta_T$ to be equal to the state $\sigma$, except that every state that was changed by the execution of $T$ is overwritten with the value in $poststate(\Delta_T)$. Similarly, $\sigma - \Delta_T$ is equal to the state $\sigma$, except that every state that was changed by the execution of $T$ is overwritten with the value in $prestate(\Delta_T)$. Formally, these definitions are as follows:
 
 \begin{align*}
@@ -367,8 +370,6 @@ A node consists of an \emph{execution client} and a \emph{consensus client}. The
 
 Execution clients implement the Ethereum JSON-RPC specification \cite{noauthor_ethereum_2024}. It provides an API to access the execution client, for instance to inspect the current block number with \verb|eth_blockNumber| or to execute a transaction without committing the state via \verb|eth_call|. In addition to the standardized RPC methods, we will also make use of methods in the debug namespace, such as \verb|debug_traceBlockByNumber|. While this namespace is not standardized, several execution clients implement these additional methods \cite{noauthor_debug_2024}\cite{noauthor_rpc_2024}\cite{noauthor_reth_2024}.
 
-\todo{Notation for multiple transactions}
-
 \chapter{Transaction order dependency}
 
 In this chapter we discuss our definition of transaction order dependency (TOD) and various properties that come with it. We first lay out the idea of TOD with a basic definition and then show several shortcomings of a simple definition and how this affected previous works. Based on these insights, we construct a more precise definition that we will use for our analysis.
@@ -384,6 +385,10 @@ $$\sigma \prime \neq \sigma \prime \prime$$
 So, starting from an initial state, when we execute first $T_A$ and then $T_B$ it will result in a different state, than when executing $T_B$ and afterwards $T_A$.
 
 We will refer to the execution order $T_A \rightarrow T_B$, the one that occurred on the blockchain, as the \emph{normal} execution order, and $T_B \rightarrow T_A$ as the \emph{reversed} execution order.
+
+\section{Motivating examples}
+
+\todo{Add a motivating example for write-read TOD (e.g. TOD-recipient) and for write-write TOD (e.g. ERC-20 approval).}
 
 \section{Relation to previous works}
 
@@ -427,7 +432,7 @@ When executing the reverse order, we could make following choices:
     \item $\sigma \xrightarrow{T_X} \sigma_X \xrightarrow{T_B} \sigma_{XB} \xrightarrow{T_A} \sigma_{XBA}$, which executes $T_X$  on $\sigma$ rather than $\sigma_A$, which was originally used for $T_X$.
 \end{enumerate}
 
-\todo{What about logs? These are not part of the world state, but should also be modelled.}
+\todo{What about logs? These are not part of the world state, but could/should also be modelled. On the other hand, a TOD log without a TOD resulting state seems unlikely / like a useless log in the first place.}
 
 All of these scenarios are possible, but none of them provides a clean solution to solely analyze the impact of $T_A$ on $T_B$, as we always could have some indirect impact from the (non-)execution of $T_X$.
 
@@ -439,7 +444,7 @@ In \cite{zhang_combatting_2023}, this impact of the intermediary transactions is
 
 Nonetheless, it is not clear, which of the above scenarios they applied for their analysis. \cite{torres_frontrunner_2021} does not mention this issue at all.
 
-\todo{Consider moving the technical aspects to an appendix.}
+\todo{Should I move the technical aspects to an appendix?}
 
 \subsubsection{Analysis of \cite{zhang_combatting_2023}}
 
@@ -490,42 +495,46 @@ Similar to the block environment, this could lead to differences in the emulatio
 
 To address the issues above, we will provide a more precise definition for TOD.
 
-Consider following sequence of transactions, with $\sigma$ being the world state right before $T_A$ was executed on the blockchain:
+\begin{definition}[TOD]
+    Consider a sequence of transactions, with $\sigma$ being the world state right before $T_A$ was executed on the blockchain:
 
-$$\sigma \xrightarrow{T_A} \sigma_A \xrightarrow{T_{X_1}} \dots \xrightarrow{T_{X_n}} \sigma_{X_n} \xrightarrow{T_B} \sigma_B$$\todo{Should we restate it, to compare state diffs rather than states?}
+    $$\sigma \xrightarrow{T_A} \sigma_A \xrightarrow{T_{X_1}} \dots \xrightarrow{T_{X_n}} \sigma_{X_n} \xrightarrow{T_B} \sigma_B$$
 
-Let $\Delta_{T_A}$ and $\Delta_{T_B}$ be the corresponding state changes from executing $T_A$ and $T_B$, and let all transactions be executed in the block environment of their block.
+    Let $\Delta_{T_A}$ and $\Delta_{T_B}$ be the corresponding state changes from executing $T_A$ and $T_B$, and let all transactions be executed in the block environment of their block.
 
-We say, that $(T_A, T_B)$ is TOD if and only if:
+    We say, that $(T_A, T_B)$ is TOD if and only if executing $(\sigma_{X_n} - \Delta_{T_A}) \xrightarrow{T_B} \sigma_B\prime$ produces a state change $\Delta_{T_B\prime}$ with $\Delta_{T_B} \neq \Delta_{T_B\prime}$.
+\end{definition}
 
-$$(\sigma_{X_n} - \Delta_{T_A}) \xrightarrow{T_B} \sigma_B\prime\text{ and }\sigma_B \neq \sigma_B\prime$$
+Intuitively, we take the world state exactly before $T_B$ was executed, namely $\sigma_{X_n}$. We then record the state changes $\Delta_{T_B}$ from executing $T_B$ directly on $\sigma_{X_n}$, similar to how it was executed in the blockchain. Then we simulate what would have happened if $T_A$ was not executed before $T_B$ by removing its state changes and executing $T_B$ on $\sigma_{X_n} - \Delta_{T_A}$. If we observe different state changes for $T_B$ when executed with and without the changes of $T_A$, then we know that $T_A$ has an impact on $T_B$ and can conclude TOD between $T_A$ and $T_B$. If there are no differences between $\Delta_{T_B}$ and $\Delta_{T_B\prime}$, then $T_B$ behaves the same regardless of $T_A$ and there is no TOD.
 
-Intuitively, if we take the world state exactly before $T_B$ was executed, namely $\sigma_{X_n}$. We then compare if we get a different result when executing $T_B$ directly on $\sigma_{X_n}$ and when removing the state changes by $T_A$ and execute $T_B$ on $\sigma_{X_n} - \Delta_{T_A}$. If we get a different result, we say that $(T_A, T_B)$ is TOD.
+We compare the two executions on the state changes $\Delta_{T_B} \neq \Delta_{T_B\prime}$, rather than on the resulting states $\sigma_B \neq \sigma_B\prime$, to detect a wider range of TODs. Comparing on $\sigma_B \neq \sigma_B\prime$ would be sufficient to detect \emph{write-read} TODs, where the first transaction writes some state and the second transaction accesses this state and outputs a different result because of this. However, we are also interested into \emph{write-write} TODs, where $T_A$ writes some state and $T_B$ overwrites the same state with a different value, thus hiding the change by $T_A$.
 
-Note, that we only define TOD for the case that $T_A$ impacts $T_B$, but not the other way round. We ignore the case that $T_B$ impacts $T_A$, as we focus on detecting frontrunning attacks, in which the attacker tries to execute a transaction prior to some transaction $T$ and impact the behaviour of $T$ with this. To define TOD in both directions, one may extend the definition with $(\sigma + \Delta_{T_B\prime}) \xrightarrow{T_A} \sigma_A\prime$ and $\sigma_A \neq \sigma_A\prime$, where $\Delta_{T_B\prime}$ is the state change corresponding to executing $T_B$ on $\sigma_{X_n} - \Delta_{T_A}$.
+For example, let $T_A$ write the value $aaaa$ to some storage, s.t. we have $\sigma_{X_n}(a)_s[k] = aaaa$ and $T_B$ write $bbbb$ to the same storage, s.t. we have $\sigma_B(a)_s[k] = bbbb$. When executing $T_B$ last, the world state would have $bbbb$ at this storage slot, and when executing $T_A$ last, it would be $aaaa$. Therefore, the resulting world state is dependent on the order of $T_A$ and $T_B$. To check for this case, we compare the prestates of each change in $\Delta_{T_B}$ and $\Delta_{T_B\prime}$. In our example, when executing $T_B$ on $\sigma_{X_n}$ we would have $prestate(\Delta_{T_B})(a)_s[k] = aaaa$ (as the changes from $T_A$ are included in this scenario), but have $prestate(\Delta_{T_B\prime})(a)_s[k] = 0000$ (as the changes from $T_A$ are undone in this scenario). Therefore, comparing prestates from the state changes $\Delta_{T_B}$ and $\Delta_{T_B\prime}$ can detect write-write TODs.
+
+Our definition does not include \emph{read-write} TODs, i.e. we do not check whether executing $T_B$ before $T_A$ would have an impact on $T_A$. We focus on detecting TOD attacks, in which the attacker tries to insert a transaction prior to some transaction $T$ and impact the behaviour of $T$ with this. Therefore, we assume that the first transaction tries to impact the second transaction, and not ignore the other way round.
 
 \subsection{Definition strengths}
 
 \subsubsection{Performance}
 
-To check if two transactions $T_A$ and $T_B$ are TOD, we only need the state change $\Delta_{T_A}$ and the state $\sigma_{X_n}$. These are enough to execute the normal and reverse order. In total, we would only have two transaction executions, despite including the impact of arbitrary many intermediary transactions.
+To check if two transactions $T_A$ and $T_B$ are TOD, we only need the initial world state $\sigma$ and the state changes from $T_A$, $T_B$ and all intermediary transactions $T_{X_n}$. With the state changes we can compute $\sigma_{X_n} - \Delta_{T_A} = \sigma + \Delta_{T_A} + (\sum_{i=0}^{i=n} \Delta_{T_{X_i}}) - \Delta_{T_A}$ and then execute $T_B$ on this state. Using state changes allows us to check if $T_A$ and $T_B$ with only one transaction execution, despite including the effects of arbitrary many intermediary transactions.
 
-If we want to check n transactions for TOD, we would need $n$ transaction executions to obtain the state changes and resulting states by each transaction. If we wanted to test all possible transaction pairs, we would additionally need $\frac{n^2 - n}{2}$ more executions to obtain the execution results of the reverse order, leading to a total of $\frac{n^2 + n}{2}$ transaction executions. Similar to \cite{torres_frontrunner_2021} and \cite{zhang_combatting_2023}, we can filter irrelevant transactions pairs to be faster.
+If we want to check n transactions for TOD, we could execute all n transactions to obtain their state changes. There are $\frac{n^2 - n}{2}$ transaction pairs, thus if we wanted to test each pair for TOD we would end up with a total of $\frac{n^2 + n}{2}$ transaction executions. Similar to \cite{torres_frontrunner_2021} and \cite{zhang_combatting_2023}, we can filter irrelevant transactions pairs to reduce the search space.
 
 \subsubsection{Similarity to blockchain executions}
 
-With our definition, the results in the normal execution are equivalent to the results that happend on the blockchain. Also, the reversed order is closely related to the state from the blockchain, as we start with $\sigma_{X_n}$ and only modify the relevant parts for our analysis.
+With our definition, the state changes $\Delta_{T_B}$ from the normal execution, are equivalent to the state changes that happend on the blockchain. Also, the reversed order is closely related to the state from the blockchain, as we start with $\sigma_{X_n}$ and only modify the relevant parts for our analysis.
 
 This contrasts other implementations, where transactions are executed in different block environments than originally or are executed based on a different starting state. Both of these can alter the result in ways that are not related to the impact of $T_A$, which we want to analyze.
 
 \subsection{Definition weaknesses}
 \label{sec:weaknesses}
 
-The intuitive idea of our definition is, to compare $T_A \rightarrow T_{X_i} \rightarrow T_B$ with $T_{X_i} \rightarrow T_B$, i.e. reckoning what would have happened without $T_A$. However, the definition we provide does not perfectly match this concept. As explained below, these inconsistencies arise with certain interplays between $T_A$ and some intermediary transaction $T_X$, which are ignored by our definition. This may be desirable, as we want to focus solely on the effect of $T_A$ on $T_B$, however it may lead to unexpected results if one is not aware of this.
+An intuitive interpretation of our definition would be, that we compare $T_A \rightarrow T_{X_i} \rightarrow T_B$ with $T_{X_i} \rightarrow T_B$, i.e. reckon what would have happened if $T_A$ was not executed. However, the definition we provide does not perfectly match this concept. Our definition does not consider interactions between $T_A$ and the intermediary transactions $T_{X_i}$. In the intuitive model, removal of $T_A$ could also impact the intermediary transactions and thus indirectly change the behaviour of $T_B$. Then we would not know if $T_A$ directly impacted $T_B$, or only through some interplay with intermediary transactions. Therefore, excluding the interactions between $T_A$ and $T_{X_i}$ may be desirable, however it can lead to unexpected results if one is not aware of this.
 
 \subsubsection{Undoing state changes of intermediary transactions}
 
-When we analyze a TOD for $(T_A, T_B)$, applying $\sigma_{X_n} - \Delta_{T_A}$ could lead to an unrealistic state if $T_A$ modifies the same state keys as some intermediary transaction $T_X$.
+When we analyze a TOD for $(T_A, T_B)$, applying $\sigma_{X_n} - \Delta_{T_A}$ could undo state changes done by the intermediary transactions, if $T_A$ modifies the same state keys as some intermediary transaction $T_X$.
 
 For instance, consider the three transactions $T_A$, $T_X$ and $T_B$:
 
@@ -567,7 +576,7 @@ $$collisions(T_A, T_B) = (W_{T_A} \cap R_{T_B}) \cup (W_{T_A} \cap W_{T_B})$$
 
 With $W_{T_A} \cap R_{T_B}$ we include write-read collisions, where $T_A$ modifies some state and $T_B$ accesses the same state. Therefore, the execution of $T_B$ uses the value that $T_A$ wrote, which is a potential TOD. With $W_{T_A} \cap W_{T_B}$ we include write-write collisions, where both transactions write to the same state location, for instance to the same storage slot. In this case, the resulting value of this state location depends on which transaction was executed last, and thus this can also cause a TOD.
 
-We do not include $R_{T_A} \cap W_{T_B}$, as it cannot be an attack if the first transaction did not modify the values accessed or written by the second transaction, and therefore is not of interest for this paper.
+We do not include $R_{T_A} \cap W_{T_B}$, as we also did not include read-write TOD in our TOD defintion.
 
 \section{TOD candidates}
 
@@ -575,7 +584,7 @@ We will refer to a transaction pair $(T_A, T_B)$, where $T_A$ was executed befor
 
 A TOD candidate is not necessarily TOD, for instance consider the case that $T_B$ only reads the value that $T_A$ wrote but never uses it for any computation. This would be a TOD candidate, as they have a collision, however the result of executing $T_B$ is not impacted by this collision.
 
-Conversely, if $(T_A, T_B)$ is transaction order dependent, then $(T_A, T_B)$ must also a TOD candidate, as we only can have a TOD if there is some state collision.
+Conversely, if $(T_A, T_B)$ is transaction order dependent, then $(T_A, T_B)$ must also a TOD candidate. For a write-write TOD, this is the case, because both $T_A$ and $T_B$ write to the same state, therefore we have $W_{T_A} \cap W_{T_B} \neq \emptyset$. If we have a write-read TOD, then $T_B$ reads some state that $T_A$ wrote, hence $W_{T_A} \cap R_{T_B} \neq \emptyset$.
 
 Therefore, the set of all TOD transaction pairs is a subset of all TOD candidates.
 
