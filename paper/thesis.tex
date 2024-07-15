@@ -711,16 +711,6 @@ By inspecting the source code from the tracers for Reth\cite{noauthor_paradigmxy
 
 We store all the accesses and modifications in a database and then query it for write-read and write-write collisions to obtain a preliminary set of TOD candidates.
 
-\todo{Figure on unique transactions in TOD candidates}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.8\textwidth]{tod_collisions_hist.png}
-    \caption{The histogram and eCDF of the block distance for TOD candidates. The blue bars show how many TOD candidates have been found that are n blocks apart. The orange line shows the percentage of TOD candidates, that are at most n blocks apart.}
-    \label{fig:tod_block_dist}
-\end{figure}
-
-
 \section{TOD candidate filtering}
 
 Many of the TOD candidates we gain in the previous section are not relevant for our further analysis. To prevent unnecessary computation and distortion of our results, we filter them out.
@@ -758,7 +748,7 @@ With the example of 100 transactions modifying the balance of address $a$, when 
 
 \subsubsection{Nonce and Code collisions}
 
-We showed in section \ref{sec:relevant-collisions}, that nonce and code collisions are not relevant for TOD attacks. Therefore, we ignore collisions for this state type.\todo{Implement this.}
+We showed in section \ref{sec:relevant-collisions}, that nonce and code collisions are not relevant for TOD attacks. Therefore, we ignore collisions for this state type.
 
 \subsubsection{Block windows}
 
@@ -868,15 +858,37 @@ Note, that this does not directly imply, that "Same-value collision" filters out
 
 After applying the filters, 7864 transactions are part of at least one TOD candidate. Therefore, 46.8\% of all transactions are marked as potentially TOD with some other transaction and require further analysis.
 
+\subsubsection{Block distance}
+
+In figure \ref{fig:tod_block_dist} we can see, that most TOD candidates are within the same block and the farther two transactions are apart, the less likely we include them as a TOD candidate. Therefore, when using our filters, the block window could be reduced even further without missing many TOD candidates.
+
+\todo{Figure on unique transactions in TOD candidates}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{charts/tod_candidates_block_dist.png}
+    \caption[Block distances of TOD candidates]{The histogram and eCDF of the block distance for TOD candidates. The blue bars show how many TOD candidates have been found, where $T_A$ and $T_B$ are n blocks apart. The orange line shows the percentage of TOD candidates, that are at most n blocks apart.}
+    \label{fig:tod_block_dist}
+\end{figure}
+
 \subsubsection{Collisions}
 
-There remain 8818 storage collisions and 5654 balance collisions. These collisions occur in only 1472 different account states. When we analyze, how often each account is part of a collision, we see that collisions are highly concentrated around a small set of accounts: The five accounts with the most collisions are all token accounts\footnote{The tokens are: \href{https://etherscan.io/address/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2}{WETH}, \href{https://etherscan.io/address/0x97a9a15168c22b3c137e6381037e1499c8ad0978}{DOP}, \href{https://etherscan.io/address/0xdac17f958d2ee523a2206206994597c13d831ec7}{USDT}, \href{https://etherscan.io/address/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48}{USDC} and \href{https://etherscan.io/address/0xf938346d7117534222b48d09325a6b8162b3a9e7}{CHOPPY}} and are responsible for 43.0\% of all collisions.
+There remain 8818 storage collisions and 5654 balance collisions. These collisions occur in only 1472 different account states. When we analyze, how often each account is part of a collision, we see that collisions are highly concentrated around a small set of accounts. For instance, the five accounts with the most collisions are all token accounts\footnote{The tokens are: \href{https://etherscan.io/address/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2}{WETH}, \href{https://etherscan.io/address/0x97a9a15168c22b3c137e6381037e1499c8ad0978}{DOP}, \href{https://etherscan.io/address/0xdac17f958d2ee523a2206206994597c13d831ec7}{USDT}, \href{https://etherscan.io/address/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48}{USDC} and \href{https://etherscan.io/address/0xf938346d7117534222b48d09325a6b8162b3a9e7}{CHOPPY}} and are responsible for 43.0\% of all collisions.
 
-Our goal is a diverse set of attacks for our benchmark. Having such a strong imbalance towards a few contracts, will take a long time to analyze these TOD candidates while likely yielding only a few types of attacks. To prevent this, we may filter out duplicate addresses for collisions.
+Our goal is a diverse set of attacks for our benchmark. With such a strong imbalance towards a few contracts that cause the majority of collisions, it will take a long time to analyze these TOD candidates while analyzing interactions with few contracts. To prevent this, we may filter out duplicate addresses for collisions.
+
+Figure \ref{fig:collsions_address_limit} depicts, how many collisions we would get when we only consider the first $n$ collisions for each address. If we set the limit to one collision per address, we would end up with 1472 collisions, which is exactly the number of unique addresses where collisions happened. When we keep 10 collisions per address, we would get 3964 collisions. Such a scenario would reduce the amount of collisions by 73\%, while still retaining a sample of 10 collisions for each address, that could cover different types of TOD attacks.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{charts/collisions_limited_per_address.png}
+    \caption[Limit for collisions per address]{The chart shows, how many collisions we have, when we limit the number of collisions we include per address. For instance, if we only include 10 collisions for each address we would end up with about 4000 collisions.}
+    \label{fig:collsions_address_limit}
+\end{figure}
 
 \section{Deduplication}
 
-\todo{Consider implementing deduplication, i.e. filtering out collisions at the same address.}
+\todo{Consider implementing deduplication, e.g. filtering out collisions at the same address.}
 
 \iffalse
     We want a diverse set of attacks for the benchmark, so we filter out similar attacks to the ones we already analyzed. For instance, it does not make sense to analyze 5000 attacks for the USDT Stablecoin, as these will mostly collide.
