@@ -814,11 +814,7 @@ When a transaction executes code, the trace will show this code access. Thus, we
 
 \section{Experiment}
 
-In this section, we discuss the results of applying the TOD candidate mining methodology on a randomly sampled sequence of 100 blocks (see chapter \ref{cha:reproducibility} for the sampling procedure).
-
-\subsection{Setup}
-
-We used a public archive node\cite{noauthor_pokt_2024} with an initially empty local cache for the RPC calls.\todo{Write down the setup of OS, processor, RAM, disk, etc.}
+In this section, we discuss the results of applying the TOD candidate mining methodology on a randomly sampled sequence of 100 blocks. Refer to chapter \ref{cha:reproducibility} for the experiment setup and the reproducible sampling.
 
 \subsection{Results}
 
@@ -908,78 +904,76 @@ Figure \ref{fig:collsions_address_limit} depicts, how many collisions we would g
 \fi
 
 \chapter{Trace analysis}
+\iffalse
+    % For instance, all EVM transactions in the same block read and write to the beneficiary account for gas payment, making all transactions interdependent by default.
+    % Is this the case? Do we see this in the prestate tracer?
+    % https://github.com/risechain/pevm
 
-% For instance, all EVM transactions in the same block read and write to the beneficiary account for gas payment, making all transactions interdependent by default.
-% Is this the case? Do we see this in the prestate tracer?
-% https://github.com/risechain/pevm
+    \section{Trace replaying}
 
-\section{Trace replaying}
+    \subsection{Algorithm}
 
-\subsection{Algorithm}
+    Let's say, we have a transaction $T_A$ and a $T_B$, where $T_A$ occurred in block $Block_A$ and $T_B$ occurred in $Block_B$ (which may be equal to $Block_A$). Further, $T_A$ occurred before $T_B$, denoted as $T_A \rightarrow T_B$.
 
-Let's say, we have a transaction $T_A$ and a $T_B$, where $T_A$ occurred in block $Block_A$ and $T_B$ occurred in $Block_B$ (which may be equal to $Block_A$). Further, $T_A$ occurred before $T_B$, denoted as $T_A \rightarrow T_B$.
+    We want to replay following scenarios:
 
-We want to replay following scenarios:
+    \begin{enumerate}
+        \item actual: $T_A \rightarrow T_B$
+        \item reverse: $T_B \rightarrow T_A$
+    \end{enumerate}
 
-\begin{enumerate}
-    \item actual: $T_A \rightarrow T_B$
-    \item reverse: $T_B \rightarrow T_A$
-\end{enumerate}
+    \subsubsection{Actual: $T_A \rightarrow T_B$}
 
-\subsubsection{Actual: $T_A \rightarrow T_B$}
+    For $T_A$: We start with $\sigma_{B_A}$, being the world state at the start of the block containing $T_A$. Then we set $\sigma = \sigma_{B_A} + \sum_{i=0}^{i=index(T_A)}\Delta_{T(B_B)_i}$ and execute $\sigma \xrightarrow{T_A} \sigma\prime$.
 
-For $T_A$: We start with $\sigma_{B_A}$, being the world state at the start of the block containing $T_A$. Then we set $\sigma = \sigma_{B_A} + \sum_{i=0}^{i=index(T_A)}\Delta_{T(B_B)_i}$ and execute $\sigma \xrightarrow{T_A} \sigma\prime$.
+    For $T_B$: We start with $\sigma_{B_B}$, being the world state at the start of the block containing $T_B$. Then we set $\sigma = \sigma_{B_B} + \sum_{i=0}^{i=index(T_B)}\Delta_{T(B_B)_i}$ and execute $\sigma \xrightarrow{T_B} \sigma\prime$.
 
-For $T_B$: We start with $\sigma_{B_B}$, being the world state at the start of the block containing $T_B$. Then we set $\sigma = \sigma_{B_B} + \sum_{i=0}^{i=index(T_B)}\Delta_{T(B_B)_i}$ and execute $\sigma \xrightarrow{T_B} \sigma\prime$.
-
-\subsubsection{Reverse: $T_B \rightarrow T_A$}
+    \subsubsection{Reverse: $T_B \rightarrow T_A$}
 
 
-For $T_B$: We start with $\sigma_{B_B}$, being the world state at the start of the block containing $T_B$. Then we set $\sigma = \sigma_{B_B} + (\sum_{i=0}^{i=index(T_B)}\Delta_{T(B_B)_i}) - \Delta_{T_A}$ and execute $\sigma \xrightarrow{T_B} \sigma\prime$.
+    For $T_B$: We start with $\sigma_{B_B}$, being the world state at the start of the block containing $T_B$. Then we set $\sigma = \sigma_{B_B} + (\sum_{i=0}^{i=index(T_B)}\Delta_{T(B_B)_i}) - \Delta_{T_A}$ and execute $\sigma \xrightarrow{T_B} \sigma\prime$.
 
-For $T_A$: We start with $\sigma_{B_A}$, being the world state at the start of the block containing $T_A$. Then we set $\sigma = \sigma_{B_A} + (\sum_{i=0}^{i=index(T_A)}\Delta_{T(B_B)_i}) + \Delta_{T_B\prime}$ and execute $\sigma \xrightarrow{T_A} \sigma\prime$.
+    For $T_A$: We start with $\sigma_{B_A}$, being the world state at the start of the block containing $T_A$. Then we set $\sigma = \sigma_{B_A} + (\sum_{i=0}^{i=index(T_A)}\Delta_{T(B_B)_i}) + \Delta_{T_B\prime}$ and execute $\sigma \xrightarrow{T_A} \sigma\prime$.
 
-\section{Trace parsing}
+    \section{Trace parsing}
 
-Features:
+    Features:
 
-\begin{enumerate}
-    \item parses executed instructions with inputs and outputs
-    \item handles internal transactions, including normal and exceptional halts
-    \item tracks data origin for each byte of data, across calls and storages
-    \item uses reference for DUPn instructions (so verification on one duplicate also verifies the other duplicate)
-    \item outputs data flow graph, eg for source-sanitizers-sink analysis (and sanitizers could occur after sinks in Ethereum, because of reverts)
-\end{enumerate}
+    \begin{enumerate}
+        \item parses executed instructions with inputs and outputs
+        \item handles internal transactions, including normal and exceptional halts
+        \item tracks data origin for each byte of data, across calls and storages
+        \item uses reference for DUPn instructions (so verification on one duplicate also verifies the other duplicate)
+        \item outputs data flow graph, eg for source-sanitizers-sink analysis (and sanitizers could occur after sinks in Ethereum, because of reverts)
+    \end{enumerate}
 
-Using traces instead of a full-fledged EVM allows:
+    Using traces instead of a full-fledged EVM allows:
 
-\begin{enumerate}
-    \item easier extension, as for instructions we only need to model their data flow
-    \item interoperability with all nodes and other tools that produce traces
-    \item automatic verification of the modelled data flows against the actual stack and memory
-\end{enumerate}
+    \begin{enumerate}
+        \item easier extension, as for instructions we only need to model their data flow
+        \item interoperability with all nodes and other tools that produce traces
+        \item automatic verification of the modelled data flows against the actual stack and memory
+    \end{enumerate}
 
-\subsection{Data flow graph}
+    \subsection{Data flow graph}
 
-Horus and EVMTracer use a similar approach, by building a shadow state that contains the dependency information for each value.
+    Horus and EVMTracer use a similar approach, by building a shadow state that contains the dependency information for each value.
 
-We use a different approach, where our shadow state is directly used for computation. Furthermore, our approach is on byte level. Furthermore, our approach tracks data dependencies, rather than instruction step dependencies (and idk yet what exactly the dis-/advantages of that are).
+    We use a different approach, where our shadow state is directly used for computation. Furthermore, our approach is on byte level. Furthermore, our approach tracks data dependencies, rather than instruction step dependencies (and idk yet what exactly the dis-/advantages of that are).
 
-\section{Attack categorization}
+    \section{Attack categorization}
 
-\section{Vulnerability localization}
+    \section{Vulnerability localization}
 
-\section{Attack labeling}
-
+    \section{Attack labeling}
+\fi
 \chapter{TOD Attack results}
 
-Findings of the TOD attack mining and analysis.
+Overall findings of the TOD attack mining and analysis.
 
 \chapter{Tool benchmarking}
 
 \section{Systematic Literature Review}
-
-\section{Setup}
 
 \section{Result}
 
@@ -990,11 +984,19 @@ TBD.
 \chapter{Reproducibility}
 \label{cha:reproducibility}
 
+\section{Tool}
+
 TBD.
 
+\section{Randomness}
 
+TBD.
 
-% \input{intro.tex} % A short introduction to LaTeX.
+\section{Experiment setup}
+
+The experiments were executed on Ubuntu 22.04.04, using an AMD Ryzen 5 5500U CPU with 6 cores and 2 threads per core and a SN530 NVMe SSD. We used a 16 GB RAM with an additional 16 GB swap file.
+
+For the RPC requests we used a public endpoint\cite{noauthor_pokt_2024}, which uses Erigon\cite{noauthor_rpc_2024} according to the \verb|web3_clientVersion| RPC method. We used a local cache to prevent repeating slow RPC requests \cite{noauthor_fuzzlandcached-eth-rpc_2024}. Unless otherwise noted, the cache was initially empty for experiments that state the running time.
 
 \backmatter
 
