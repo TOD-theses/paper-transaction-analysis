@@ -270,7 +270,7 @@ We denote the world state as $\sigma$, the account state of an address $a$ as $\
 
 The Ethereum Virtual Machine (EVM) is used to execute code in Ethereum. It can execute a set of instructions, that can access and modify the world state. The EVM is Turing-complete, except that it is executed with a limited amount of \emph{gas} and each instruction costs some gas \cite{wood_ethereum_2024}. When it runs out of gas, the execution will halt \cite[p.14]{wood_ethereum_2024}. For instance, this prevents execution of infinite loops, as it would use infinitely much gas and thus exceed the gas limit.
 
-Most EVM instructions are formally defined in \cite[p.30-38]{wood_ethereum_2024}. However, the Yellowpaper currently does not include the changes from the Cancun upgrade \cite{noauthor_history_2024}, therefore we will also refer to the informal description available on \href{https://www.evm.codes/}{evm.codes} \cite{noauthor_evm_2024}.
+Most EVM instructions are formally defined in \cite[p.30-38]{wood_ethereum_2024}. However, the Yellowpaper currently does not include the changes from the Cancun upgrade \cite{noauthor_history_2024}, therefore we will also refer to the informal description available on \href{https://www.evm.codes/}{evm.codes} \cite{smlxl_evm_2024}.
 
 \section{Transactions}
 
@@ -297,7 +297,7 @@ We denote a transaction as $T$, sometimes adding a subscript $T_A$ to differenti
 
 \section{Blocks}
 
-The Ethereum blockchain consists of a sequence of blocks, where each block builds upon the state of the previous block. To achieve consensus about the canonical sequence of blocks in a decentralized network of nodes, Ethereum currently uses a consensus protocol. In this protocol, validators build and propose blocks to be added to the blockchain \cite{noauthor_gasper_2024}. It is the choice of the validator, which transactions to include in a block, however they are incentivized to include transactions that pay high transaction fees, as they receive the fee \cite[p.8]{wood_ethereum_2024}.
+The Ethereum blockchain consists of a sequence of blocks, where each block builds upon the state of the previous block. To achieve consensus about the canonical sequence of blocks in a decentralized network of nodes, Ethereum currently uses a consensus protocol. In this protocol, validators build and propose blocks to be added to the blockchain \cite{noauthor_gasper_2023}. It is the choice of the validator, which transactions to include in a block, however they are incentivized to include transactions that pay high transaction fees, as they receive the fee \cite[p.8]{wood_ethereum_2024}.
 
 Each block consists of a block header and a sequence of transactions. We denote the nth block of the blockchain as $B_n$ and the sequence of transactions it includes as $T(B_n) = (T_1, T_2, \dots, T_m)$.
 
@@ -355,7 +355,7 @@ A node consists of an \emph{execution client} and a \emph{consensus client}. The
 
 \section{RPC}
 
-Execution clients implement the Ethereum JSON-RPC specification \cite{noauthor_ethereum_2024}. It provides an API to access the execution client, for instance to inspect the current block number with \verb|eth_blockNumber| or to execute a transaction without committing the state via \verb|eth_call|. In addition to the standardized RPC methods, we will also make use of methods in the debug namespace, such as \verb|debug_traceBlockByNumber|. While this namespace is not standardized, several execution clients implement these additional methods \cite{noauthor_debug_2024}\cite{noauthor_rpc_2024}\cite{noauthor_reth_2024}.
+Execution clients implement the Ethereum JSON-RPC specification \cite{noauthor_ethereum_2024}. It provides an API to access the execution client, for instance to inspect the current block number with \verb|eth_blockNumber| or to execute a transaction without committing the state via \verb|eth_call|. In addition to the standardized RPC methods, we will also make use of methods in the debug namespace, such as \verb|debug_traceBlockByNumber|. While this namespace is not standardized, several execution clients implement these additional methods \cite{noauthor_go-ethereum_2024}\cite{noauthor_rpc_2024}\cite{noauthor_reth_2024}.
 
 \chapter{Transaction order dependency}
 
@@ -397,7 +397,7 @@ Therefore, if the execution order results in different financial gains, then $T_
 
 Our intuitive definition of TOD, and the related definitions shown above, are not precise on the semantics of an ordering and reordering of transactions and their executions. These make it impossible to apply the same methodology without analyzing the source code related to the papers. We detect three issues, where the definition is not precise enough and was interpreted differently by the two papers.
 
-For the analysis of the tools by \cite{zhang_combatting_2023} and \cite{torres_frontrunner_2021}, we will use the current version of the source codes, \cite{noauthor_troublorerebus-redgiant_2024} and \cite{noauthor_christoftorresfrontrunner-jones_2024} respectively.
+For the analysis of the tools by \cite{zhang_combatting_2023} and \cite{torres_frontrunner_2021}, we will use the current version of the source codes, \cite{zhang_erebus-redgiant_2023} and \cite{torres_frontrunner_2022} respectively.
 
 \subsection{Intermediate transactions}
 
@@ -581,7 +581,7 @@ This section discusses, what can cause two transactions $T_A$ and $T_B$ to have 
 
 \subsection{Causes with code execution}
 
-When the recipient of a transaction is a contract account, it will execute the recipient's code. The code execution can access and modify the state through several instructions. By inspecting the EVM instruction definitions \cite[p.30-38]{wood_ethereum_2024}\cite{noauthor_evm_2024}, we compiled a list of instructions that can access and modify the world state.
+When the recipient of a transaction is a contract account, it will execute the recipient's code. The code execution can access and modify the state through several instructions. By inspecting the EVM instruction definitions \cite[p.30-38]{wood_ethereum_2024}\cite{smlxl_evm_2024}, we compiled a list of instructions that can access and modify the world state.
 
 In table \ref{tab:state_reading_instructions} we see the instructions, that can access the world state. For most, the reason of the access is clear, for instance \verb|BALANCE| needs to access the balance of the target address. Less obvious is the nonce access of several instructions, which is because the EVM uses the nonce (among other things) to check if an account already exists. For CALL, CALLCODE and SELFDESTRUCT, this is used to calculate the gas costs. For CREATE and CREATE2, this is used to prevent creating an account at an already active address. \cite{wood_ethereum_2024}
 
@@ -642,7 +642,7 @@ The previous sections list possible ways to access and modify the world state. P
 An attacker could modify the execution of some transaction $T_B$, by placing a transaction $T_A$ before it that modifies state that is used by $T_B$, i.e. having a write-read or write-write collision between $T_A$ and $T_B$. Therefore, the attacker needs to modify the relevant state.
 Assume that $T_B$ accesses the codes and nonces of some set of address $A$.
 
-Let us first focus on the instructions, that could modify the accessed codes and nonces in $A$, namely \verb|SELFDESTRUCT|, \verb|CREATE| and \verb|CREATE2|. Since the EIP-6780 update\cite{noauthor_eip-6780_nodate}, \verb|SELFDESTRUCT| only destroys a contract if the contract was created in the same transaction. Therefore, \verb|SELFDESTRUCT| can only modify a code within the same transaction, but cannot be used to attack a different transaction. The instructions to create a new contract, \verb|CREATE| and \verb|CREATE2|, fail when there is already a contract at the target address \cite{noauthor_evm_2024}. Therefore, we can only modify the code if the contract did not exist previously. If this is the case, it is unlikely that $T_B$ would make a transaction to exactly this address, which is calculated using the attacker's address among other values. Therefore, none of these instructions is usable for a TOD attack.
+Let us first focus on the instructions, that could modify the accessed codes and nonces in $A$, namely \verb|SELFDESTRUCT|, \verb|CREATE| and \verb|CREATE2|. Since the EIP-6780 update\cite{ballet_eip-6780_2023}, \verb|SELFDESTRUCT| only destroys a contract if the contract was created in the same transaction. Therefore, \verb|SELFDESTRUCT| can only modify a code within the same transaction, but cannot be used to attack a different transaction. The instructions to create a new contract, \verb|CREATE| and \verb|CREATE2|, fail when there is already a contract at the target address \cite{smlxl_evm_2024}. Therefore, we can only modify the code if the contract did not exist previously. If this is the case, it is unlikely that $T_B$ would make a transaction to exactly this address, which is calculated using the attacker's address among other values. Therefore, none of these instructions is usable for a TOD attack.
 
 Apart from instructions, the nonces of an EOA can also be increased by transactions themselves. The only way that $T_B$ can access the nonce of an EOA is through the gas cost calculation when sending Ether to this address. The calculation returns a different cost if the recipient already exists. Thus, an attack would be that $T_B$ transfers some Ether to an attacker controlled EOA address $a$, and the attacker creates the account at addres $a$ in $T_A$, which slightly increases the gas cost for $T_B$. Again, this attack seems unrealistic, as the victim would have to send Ether to an attacker controlled address.
 
@@ -707,7 +707,7 @@ In this chapter, we discuss how we search for potential TODs in the Ethereum blo
 
 We make use of the RPC method \verb|debug_traceBlockByNumber|, which allows replaying all transactions of a block the same way they were originally executed. With the \verb|prestateTracer| config, this method also outputs, which state has been accessed, and using the \verb|diffMode| config, also which state has been modified\footnote{When running the prestateTracer in diffMode, several fields are only implicit in the response. We need to make these fields explicit for further analysis. Refer to the documentation or the source code for further details.}.
 
-By inspecting the source code from the tracers for Reth\cite{noauthor_paradigmxyzrevm-inspectors_2024} and results from the RPC call, we found out, that without \verb|diffMode| it always includes the account's balance, nonce and code (for contract accounts), even if only one of them was touched. Therefore, it is not precise on what exactly was touched, which can be a source of false positives for collisions. Similarly, with \verb|diffMode| enabled, each account in \verb|pre| also contains the account's balance, nonce and code (for contract accounts), even if only one of the fields was modified\footnote{I opened a \href{https://github.com/ethereum/go-ethereum/pull/30081}{pull request} to clarify this behaviour and now this is also reflected in the documentation\cite{noauthor_built-tracers_2024}.}, however, by using \verb|post| we can understand which of those fields have actually been modified.
+By inspecting the source code from the tracers for Reth\cite{paradigm_revm-inspectors_2024} and results from the RPC call, we found out, that without \verb|diffMode| it always includes the account's balance, nonce and code (for contract accounts), even if only one of them was touched. Therefore, it is not precise on what exactly was touched, which can be a source of false positives for collisions. Similarly, with \verb|diffMode| enabled, each account in \verb|pre| also contains the account's balance, nonce and code (for contract accounts), even if only one of the fields was modified\footnote{I opened a \href{https://github.com/ethereum/go-ethereum/pull/30081}{pull request} to clarify this behaviour and now this is also reflected in the documentation\cite{noauthor_go-ethereum_2024-1}.}, however, by using \verb|post| we can understand which of those fields have actually been modified.
 
 We store all the accesses and modifications in a database and then query it for write-read and write-write collisions to obtain a preliminary set of TOD candidates.
 
@@ -754,7 +754,7 @@ We showed in section \ref{sec:relevant-collisions}, that nonce and code collisio
 
 \todo{Mention, that this was also used by Frontrunner and Combatting paper.}
 
-According to a study of 24 million transactions from 2019, the maximum observed transaction latency, from being pending to being included in a block, was below 200 seconds. If we combine this with the current block time, which is 12 seconds per block according to Etherscan \cite{etherscanio_ethereum_2024}, a transaction takes at most $\frac{200}{12} \approx 17$ blocks until a transaction is included in the blockchain, and an attacker can no longer frontrun it.
+According to a study of 24 million transactions from 2019 \cite{zhang_evaluation_2021}, the maximum observed time it took from being pending to being included in a block, was below 200 seconds. If we combine this with the current block time, which is 12 seconds per block according to Etherscan \cite{etherscan_ethereum_2024}, a transaction takes at most $\frac{200}{12} \approx 17$ blocks until a transaction is included in the blockchain, and an attacker can no longer frontrun it.
 
 Therefore, if the blocks of two transactions are more than 17 blocks apart, a collision should not be because of a frontrunning attack. As the study is already 5 years old, we use a block window of 25 blocks instead, to account for a potential increase in latency since then.
 
@@ -996,7 +996,7 @@ TBD.
 
 The experiments were executed on Ubuntu 22.04.04, using an AMD Ryzen 5 5500U CPU with 6 cores and 2 threads per core and a SN530 NVMe SSD. We used a 16 GB RAM with an additional 16 GB swap file.
 
-For the RPC requests we used a public endpoint\cite{noauthor_pokt_2024}, which uses Erigon\cite{noauthor_rpc_2024} according to the \verb|web3_clientVersion| RPC method. We used a local cache to prevent repeating slow RPC requests \cite{noauthor_fuzzlandcached-eth-rpc_2024}. Unless otherwise noted, the cache was initially empty for experiments that state the running time.
+For the RPC requests we used a public endpoint\cite{noauthor_pokt_2024}, which uses Erigon\cite{noauthor_rpc_2024} according to the \verb|web3_clientVersion| RPC method. We used a local cache to prevent repeating slow RPC requests \cite{fuzzland_eth_2024}. Unless otherwise noted, the cache was initially empty for experiments that state the running time.
 
 \backmatter
 
